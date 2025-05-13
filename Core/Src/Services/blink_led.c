@@ -1,0 +1,25 @@
+// blink_led_task.c
+#include "blink_led.h"
+
+volatile uint8_t ledBlinkActive = 0;
+
+void StartTaskBlinkLED(void *argument) {
+    printf("\r\nLED Task started\r\n");
+    for (;;) {
+        if (ledBlinkActive) {
+            HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+            printf("Blinking LED\r\n");
+            osDelay(100);
+        } else {
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+            osDelay(10);
+        }
+    }
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin == GPIO_PIN_13) {
+        ledBlinkActive = !ledBlinkActive;
+        printf("Bouton pressé ! ledBlinkActive = %d\r\n", ledBlinkActive);
+    }
+}

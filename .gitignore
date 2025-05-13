@@ -1,0 +1,59 @@
+# === STM32CubeIDE / Eclipse Project ===
+
+# Build directories
+/Debug/
+/Release/
+/build/
+/output/
+/*.o
+/*.d
+
+# Binary output files
+*.elf
+*.hex
+*.bin
+*.map
+*.list
+*.out
+
+# STM32CubeIDE project config (Eclipse-based)
+.cproject
+.project
+.settings/
+.metadata/
+
+# STM32CubeMX configuration
+# (INCLURE le .ioc si vous voulez garder les réglages CubeMX dans Git)
+# Sinon, décommentez la ligne suivante pour l’ignorer :
+# *.ioc
+
+# Logs & temp
+*.log
+*.tmp
+
+# Backup & swap files
+*~
+*.bak
+*.swp
+*.swo
+*.orig
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Launch/debug config
+*.launch
+*.uvopt*
+*.uvproj*
+
+# Unit test / coverage (si jamais ajouté)
+*.gcno
+*.gcda
+*.gcov
+
+# Other tool-specific
+.idea/
+.vscode/
