@@ -1,15 +1,23 @@
 // blink_led_task.c
 #include "blink_led.h"
+#include "motor_service.h"
 
 volatile uint8_t ledBlinkActive = 0;
 
 void StartTaskBlinkLED(void *argument) {
-    printf("\r\nLED Task started\r\n");
+    printf("\r\nLED Task started\r\n");    
     for (;;) {
         if (ledBlinkActive) {
             HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
             printf("Blinking LED\r\n");
-            osDelay(100);
+            MotorService_SendCommand(0, MOTOR_CMD_RUN);
+            osDelay(500);
+            MotorService_SendCommand(0, MOTOR_CMD_STOP);
+            osDelay(500);
+            MotorService_SendCommand(1, MOTOR_CMD_RUN);
+            osDelay(500);
+            MotorService_SendCommand(1, MOTOR_CMD_STOP);
+            osDelay(500);
         } else {
             HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
             osDelay(10);

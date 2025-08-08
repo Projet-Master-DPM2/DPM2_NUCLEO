@@ -59,12 +59,22 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define B1_Pin GPIO_PIN_13
 #define B1_GPIO_Port GPIOC
+#define MUX_S0_Pin GPIO_PIN_0
+#define MUX_S0_GPIO_Port GPIOC
+#define MUX_S1_Pin GPIO_PIN_1
+#define MUX_S1_GPIO_Port GPIOC
+#define MUX_S2_Pin GPIO_PIN_2
+#define MUX_S2_GPIO_Port GPIOC
+#define MUX_S3_Pin GPIO_PIN_3
+#define MUX_S3_GPIO_Port GPIOC
 #define USART_TX_Pin GPIO_PIN_2
 #define USART_TX_GPIO_Port GPIOA
 #define USART_RX_Pin GPIO_PIN_3
 #define USART_RX_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
+#define MUX_IN1_SIG_Pin GPIO_PIN_0
+#define MUX_IN1_SIG_GPIO_Port GPIOB
 #define Sortie_Pad_Pin GPIO_PIN_10
 #define Sortie_Pad_GPIO_Port GPIOB
 #define Sortie_PadC7_Pin GPIO_PIN_7
@@ -73,18 +83,22 @@ void Error_Handler(void);
 #define Sortie_PadA8_GPIO_Port GPIOA
 #define Sortie_PadA9_Pin GPIO_PIN_9
 #define Sortie_PadA9_GPIO_Port GPIOA
-#define Entr_e_Pad_Pin GPIO_PIN_10
-#define Entr_e_Pad_GPIO_Port GPIOA
+#define Entree_Pad_Pin GPIO_PIN_10
+#define Entree_Pad_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
 #define SWO_Pin GPIO_PIN_3
 #define SWO_GPIO_Port GPIOB
-#define Entr_e_PadB4_Pin GPIO_PIN_4
-#define Entr_e_PadB4_GPIO_Port GPIOB
-#define Entr_e_PadB5_Pin GPIO_PIN_5
-#define Entr_e_PadB5_GPIO_Port GPIOB
+#define Entree_PadB4_Pin GPIO_PIN_4
+#define Entree_PadB4_GPIO_Port GPIOB
+#define Entree_PadB5_Pin GPIO_PIN_5
+#define Entree_PadB5_GPIO_Port GPIOB
+#define LCD_I2C1_SCL_Pin GPIO_PIN_8
+#define LCD_I2C1_SCL_GPIO_Port GPIOB
+#define LCD_I2C1_SDA_Pin GPIO_PIN_9
+#define LCD_I2C1_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

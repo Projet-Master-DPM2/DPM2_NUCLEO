@@ -5,12 +5,15 @@
 #include "stdio.h"
 #include "cmsis_os.h"
 #include "gpio.h"
-#include "lcd_i2c.h"
 
 #define KEYPAD_ROWS 4
 #define KEYPAD_COLS 3
 
-extern UART_HandleTypeDef huart2;
+//extern UART_HandleTypeDef huart2;
+
+typedef struct {
+    char key;
+} KeypadEvent;
 
 void Keypad_Init(void);
 char Keypad_Scan(void);

@@ -1,4 +1,4 @@
-#include "lcd_i2c.h"
+#include "lcd_service.h"
 #include "global.h"
 #include <string.h>
 
@@ -9,7 +9,8 @@
 #define LCD_RS           0x01
 
 //extern I2C_HandleTypeDef hi2c1;
-volatile char* lcd_display = NULL;
+// lcd_display est défini dans global.c
+extern osMessageQueueId_t lcdMessageQueueHandle;
 
 static void lcd_send_nibble(uint8_t nibble, uint8_t control) {
     uint8_t data = nibble | control | LCD_BACKLIGHT;
@@ -99,43 +100,30 @@ void StartTaskLCD(void *argument) {
     lcd_init();
     lcd_clear();
     lcd_set_cursor(0, 0);
-    lcd_send_string(lcd_display);
+    if (lcd_display == NULL) {
+        lcd_display = "Pret";
+    }
+    lcd_send_string((char*)lcd_display);
 
-    KeypadState keypad_last_state = keypad_interaction;
+    MachineState keypad_last_state = machine_interaction;
     char order_number[10];
 
+    // Nouvelle boucle: consomme des messages d'affichage
+    LcdMessage msg;
     for(;;) {
-        if (keypad_interaction != keypad_last_state) {
-            keypad_last_state = keypad_interaction;
+        if (osMessageQueueGet(lcdMessageQueueHandle, &msg, NULL, osWaitForever) == osOK) {
             lcd_clear();
+            lcd_set_cursor(0, 0);
+            lcd_send_string(msg.line1);
+            lcd_set_cursor(1, 0);
+            lcd_send_string(msg.line2);
         }
-        switch (keypad_interaction){
-            case IDLE:
-                lcd_display = "Choisissez une";
-                lcd_set_cursor(1, 0);
-                lcd_send_string("boisson");
-                break;
-            case ORDERING:
-                lcd_display = "Choix de boisson";
-                lcd_set_cursor(1, 0);
-                lcd_send_string(keypad_choice);
-                break;
-            case PAYING:
-                lcd_display = "Paiement en cours";
-                sprintf(order_number, "%d", client_order);
-                lcd_set_cursor(1, 0);
-                lcd_send_string(order_number);
-                break;
-            case DELIVERING:
-                lcd_display = "Distribution en cours";
-                break;
-            case SETTINGS:
-                lcd_display = "Parametres";
-                break;
-        }
-        lcd_set_cursor(0, 0);
-        lcd_scroll_string(lcd_display, 0, 300);
     }
+}
+
+void LCD_SendMessage(const LcdMessage* msg) {
+    if (lcdMessageQueueHandle == NULL || msg == NULL) return;
+    osMessageQueuePut(lcdMessageQueueHandle, msg, 0, 0);
 }
 
 // void StartTaskLCD(void *argument) {

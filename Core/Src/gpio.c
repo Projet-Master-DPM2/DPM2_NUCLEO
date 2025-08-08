@@ -51,19 +51,29 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, MUX_S0_Pin|MUX_S1_Pin|MUX_S2_Pin|MUX_S3_Pin
+                          |Sortie_PadC7_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, LD2_Pin|Sortie_PadA8_Pin|Sortie_PadA9_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(Sortie_Pad_GPIO_Port, Sortie_Pad_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(Sortie_PadC7_GPIO_Port, Sortie_PadC7_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, MUX_IN1_SIG_Pin|Sortie_Pad_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : MUX_S0_Pin MUX_S1_Pin MUX_S2_Pin MUX_S3_Pin
+                           Sortie_PadC7_Pin */
+  GPIO_InitStruct.Pin = MUX_S0_Pin|MUX_S1_Pin|MUX_S2_Pin|MUX_S3_Pin
+                          |Sortie_PadC7_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LD2_Pin Sortie_PadA8_Pin Sortie_PadA9_Pin */
   GPIO_InitStruct.Pin = LD2_Pin|Sortie_PadA8_Pin|Sortie_PadA9_Pin;
@@ -72,41 +82,44 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Sortie_Pad_Pin */
-  GPIO_InitStruct.Pin = Sortie_Pad_Pin;
+  /*Configure GPIO pins : MUX_IN1_SIG_Pin Sortie_Pad_Pin */
+  GPIO_InitStruct.Pin = MUX_IN1_SIG_Pin|Sortie_Pad_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(Sortie_Pad_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Sortie_PadC7_Pin */
-  GPIO_InitStruct.Pin = Sortie_PadC7_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(Sortie_PadC7_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : Entr_e_Pad_Pin */
-  GPIO_InitStruct.Pin = Entr_e_Pad_Pin;
+  /*Configure GPIO pin : Entree_Pad_Pin */
+  GPIO_InitStruct.Pin = Entree_Pad_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(Entr_e_Pad_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(Entree_Pad_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : Entr_e_PadB4_Pin Entr_e_PadB5_Pin */
-  GPIO_InitStruct.Pin = Entr_e_PadB4_Pin|Entr_e_PadB5_Pin;
+  /*Configure GPIO pins : Entree_PadB4_Pin Entree_PadB5_Pin */
+  GPIO_InitStruct.Pin = Entree_PadB4_Pin|Entree_PadB5_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /* USER CODE BEGIN 2 */
-  	/* Configure GPIO pin : B1_Pin (Bouton utilisateur) */
-  	GPIO_InitStruct.Pin = GPIO_PIN_13;
-  	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  	GPIO_InitStruct.Pull = GPIO_NOPULL;
-  	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  /* Configure GPIO pin : B1_Pin (Bouton utilisateur) */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  	/* Activer l'interruption EXTI */
-  	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 2, 0);
-  	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-  /* USER CODE END 2 */
+  /* Activer l'interruption EXTI */
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 2, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
+
+/* USER CODE BEGIN 2 */
+    	/* Configure GPIO pin : B1_Pin (Bouton utilisateur) */
+    	/*GPIO_InitStruct.Pin = GPIO_PIN_13;
+    	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+    	GPIO_InitStruct.Pull = GPIO_NOPULL;
+    	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    	/* Activer l'interruption EXTI */
+    	/*HAL_NVIC_SetPriority(EXTI15_10_IRQn, 2, 0);
+    	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+/* USER CODE END 2 */

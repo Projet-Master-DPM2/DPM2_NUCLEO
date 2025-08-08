@@ -26,10 +26,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
-#include "lcd_i2c.h"
+#include "lcd_service.h"
 #include "blink_led.h"
 #include "send_uart.h"
-#include "keypad.h"
+#include "keypad_service.h"
+#include "motor_service.h"
+#include "orchestrator_service.h"
 
 /* USER CODE END Includes */
 
@@ -54,6 +56,12 @@ osThreadId_t blinkLEDHandle;
 osThreadId_t sendUARTHandle;
 osThreadId_t lcdTaskHandle;
 osThreadId_t keypadTaskHandle;
+osThreadId_t motorTaskHandle;
+osThreadId_t orchestratorTaskHandle;
+
+osMessageQueueId_t keypadEventQueueHandle;
+osMessageQueueId_t orchestratorEventQueueHandle;
+osMessageQueueId_t lcdMessageQueueHandle;
 
 const osThreadAttr_t blinkLED_attributes = {
   .name = "blinkLED",
@@ -78,6 +86,28 @@ const osThreadAttr_t keypadTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+
+const osThreadAttr_t motorTask_attributes = {
+  .name = "motorTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
+const osThreadAttr_t orchestratorTask_attributes = {
+  .name = "orchestratorTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
+};
+
+const osMessageQueueAttr_t keypadEventQueue_attributes = {
+  .name = "keypadEventQueue"
+};
+const osMessageQueueAttr_t orchestratorEventQueue_attributes = {
+  .name = "orchestratorEventQueue"
+};
+const osMessageQueueAttr_t lcdMessageQueue_attributes = {
+  .name = "lcdMessageQueue"
+};
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -93,6 +123,9 @@ extern void StartTaskBlinkLED(void *argument);
 extern void StartTaskSendUART(void *argument);
 extern void StartTaskLCD(void *argument);
 extern void StartTaskKeypad(void *argument);
+extern void StartTaskMotorService(void *argument);
+extern void StartTaskOrchestrator(void *argument);
+
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -122,7 +155,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
+  keypadEventQueueHandle = osMessageQueueNew(8, sizeof(KeypadEvent), &keypadEventQueue_attributes);
+  orchestratorEventQueueHandle = osMessageQueueNew(8, sizeof(OrchestratorEvent), &orchestratorEventQueue_attributes);
+  lcdMessageQueueHandle = osMessageQueueNew(4, sizeof(LcdMessage), &lcdMessageQueue_attributes);
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -134,6 +169,8 @@ void MX_FREERTOS_Init(void) {
   //sendUARTHandle    = osThreadNew(StartTaskSendUART, NULL, &sendUART_attributes);
   lcdTaskHandle     = osThreadNew(StartTaskLCD, NULL, &lcdTask_attributes);
   keypadTaskHandle  = osThreadNew(StartTaskKeypad, NULL, &keypadTask_attributes);
+  motorTaskHandle  = osThreadNew(StartTaskMotorService, NULL, &motorTask_attributes);
+  orchestratorTaskHandle = osThreadNew(StartTaskOrchestrator, NULL, &orchestratorTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
