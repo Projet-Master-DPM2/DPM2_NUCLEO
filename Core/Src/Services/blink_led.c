@@ -10,14 +10,11 @@ void StartTaskBlinkLED(void *argument) {
         if (ledBlinkActive) {
             HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
             printf("Blinking LED\r\n");
-            MotorService_SendCommand(0, MOTOR_CMD_RUN);
-            osDelay(500);
-            MotorService_SendCommand(0, MOTOR_CMD_STOP);
-            osDelay(500);
-            MotorService_SendCommand(1, MOTOR_CMD_RUN);
-            osDelay(500);
-            MotorService_SendCommand(1, MOTOR_CMD_STOP);
-            osDelay(500);
+            // Démo: lancer une courte livraison sur 2 canaux
+            MotorService_StartDelivery(1);
+            osDelay(1000);
+            MotorService_StartDelivery(2);
+            osDelay(1000);
         } else {
             HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
             osDelay(10);

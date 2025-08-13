@@ -1,12 +1,15 @@
 #include "motor_service.h"
 #include "main.h"
 #include "queue.h"
+#include "orchestrator_service.h"
 
-// Taille de la file de commandes
-#define MOTOR_QUEUE_LENGTH 10
+// Notification directe + structure de job
+typedef struct {
+    uint8_t channel;
+} MotorJob;
 
-// File de message
-static QueueHandle_t motorQueue;
+static TaskHandle_t motorTaskHandleLocal = NULL;
+static MotorJob currentJob = {0};
 
 void MotorService_SelectMotor(uint8_t index) {
     HAL_GPIO_WritePin(MUX_S0_GPIO_Port, MUX_S0_Pin, (index >> 0) & 0x01 ? GPIO_PIN_SET : GPIO_PIN_RESET);
@@ -36,47 +39,31 @@ static void MotorService_Stop(uint8_t channel) {
 void StartTaskMotorService(void *argument) {
   printf("MotorService Task started\r\n");
 
-  // Création de la file de commandes
-  motorQueue = xQueueCreate(MOTOR_QUEUE_LENGTH, sizeof(MotorCommand));
-
-    if (motorQueue == NULL) {
-        printf("Erreur allocation motorQueue\r\n");
-        while(1);
-    }
+    motorTaskHandleLocal = xTaskGetCurrentTaskHandle();
 
     // S'assurer que le signal est au repos (LOW)
     HAL_GPIO_WritePin(MUX_IN1_SIG_GPIO_Port, MUX_IN1_SIG_Pin, GPIO_PIN_RESET);
 
-    MotorCommand cmd;
-
     for (;;) {
         printf("MotorService task en attente...\r\n");
-        if (xQueueReceive(motorQueue, &cmd, portMAX_DELAY) == pdTRUE) {
-            printf("Commande reçue : moteur %d, cmd = %d\r\n", cmd.motorIndex, cmd.command);
-            switch (cmd.command) {
-                case MOTOR_CMD_RUN:
-                    MotorService_Run(cmd.motorIndex);
-                    break;
-                case MOTOR_CMD_STOP:
-                    MotorService_Stop(cmd.motorIndex);
-                    break;
-            }
-        }
+        // Attendre une notification (job disponible)
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        printf("Motor job: ch=%d\r\n", currentJob.channel);
+        MotorService_Run(currentJob.channel);
+        osDelay(700);
+        MotorService_Stop(currentJob.channel);
+        // Notifier orchestrateur fin de livraison
+        extern osMessageQueueId_t orchestratorEventQueueHandle;
+        OrchestratorEvent evt = { .type = ORCH_EVT_DELIVERY_DONE };
+        osMessageQueuePut(orchestratorEventQueueHandle, &evt, 0, 0);
     }
 }
 
-// Interface pour envoyer une commande à la tâche
-void MotorService_SendCommand(uint8_t motorIndex, MotorCommandType command) {
-    printf("MotorService_SendCommand: motorIndex = %d, command = %d\r\n", motorIndex, command);
-    if (motorQueue == NULL) {
-        // File non prête: ignorer ou bufferiser selon besoin
-        return;
-    }
-    MotorCommand cmd = {
-        .motorIndex = motorIndex,
-        .command = command
-    };
-    xQueueSend(motorQueue, &cmd, portMAX_DELAY);
+// API: démarrer une distribution (canal + durée)
+void MotorService_StartDelivery(uint8_t channel) {
+    if (motorTaskHandleLocal == NULL) return;
+    currentJob.channel = channel;
+    xTaskNotifyGive(motorTaskHandleLocal);
 }
 
 // Mappe un code commande (11,12,13,21,22,23) vers un canal 0..6

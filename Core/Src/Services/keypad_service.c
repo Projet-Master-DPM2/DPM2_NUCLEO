@@ -55,13 +55,11 @@ char Keypad_Scan(void) {
 
 void StartTaskKeypad(void *argument) {
     printf("\r\nKeypad Task started\r\n");
-    KeypadEvent evt;
     Keypad_Init();
 
     for (;;) {
         char key = Keypad_Scan();
         if (key) {
-            evt.key = key; // gardé si besoin de logs ou debug local
             // Envoi vers l'orchestrateur (voie unifiée)
             OrchestratorEvent oevt = { .type = ORCH_EVT_KEYPAD };
             oevt.data.key = key;

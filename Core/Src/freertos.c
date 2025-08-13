@@ -32,6 +32,8 @@
 #include "keypad_service.h"
 #include "motor_service.h"
 #include "orchestrator_service.h"
+#include "sensor_stock_service.h"
+#include "esp_communication_service.h"
 
 /* USER CODE END Includes */
 
@@ -58,6 +60,8 @@ osThreadId_t lcdTaskHandle;
 osThreadId_t keypadTaskHandle;
 osThreadId_t motorTaskHandle;
 osThreadId_t orchestratorTaskHandle;
+osThreadId_t sensorStockTaskHandle;
+osThreadId_t espCommTaskHandle;
 
 osMessageQueueId_t keypadEventQueueHandle;
 osMessageQueueId_t orchestratorEventQueueHandle;
@@ -97,6 +101,17 @@ const osThreadAttr_t orchestratorTask_attributes = {
   .name = "orchestratorTask",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
+};
+
+const osThreadAttr_t sensorStockTask_attributes = {
+  .name = "sensorStockTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+const osThreadAttr_t espCommTask_attributes = {
+  .name = "espCommTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 
 const osMessageQueueAttr_t keypadEventQueue_attributes = {
@@ -171,6 +186,8 @@ void MX_FREERTOS_Init(void) {
   keypadTaskHandle  = osThreadNew(StartTaskKeypad, NULL, &keypadTask_attributes);
   motorTaskHandle  = osThreadNew(StartTaskMotorService, NULL, &motorTask_attributes);
   orchestratorTaskHandle = osThreadNew(StartTaskOrchestrator, NULL, &orchestratorTask_attributes);
+  //sensorStockTaskHandle = osThreadNew(StartTaskSensorStock, NULL, &sensorStockTask_attributes);
+  espCommTaskHandle = osThreadNew(StartTaskEspCommunication, NULL, &espCommTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */

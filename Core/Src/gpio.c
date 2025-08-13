@@ -52,13 +52,13 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, MUX_S0_Pin|MUX_S1_Pin|MUX_S2_Pin|MUX_S3_Pin
-                          |Sortie_PadC7_Pin, GPIO_PIN_RESET);
+                          |PAD_OUTPUTC7_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LD2_Pin|Sortie_PadA8_Pin|Sortie_PadA9_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LD2_Pin|PAD_OUTPUTA8_Pin|PAD_OUTPUTA9_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, MUX_IN1_SIG_Pin|Sortie_Pad_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, MUX_IN1_SIG_Pin|TOF1_SHUT_Pin|PAD_OUTPUT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -67,49 +67,49 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : MUX_S0_Pin MUX_S1_Pin MUX_S2_Pin MUX_S3_Pin
-                           Sortie_PadC7_Pin */
+                           PAD_OUTPUTC7_Pin */
   GPIO_InitStruct.Pin = MUX_S0_Pin|MUX_S1_Pin|MUX_S2_Pin|MUX_S3_Pin
-                          |Sortie_PadC7_Pin;
+                          |PAD_OUTPUTC7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LD2_Pin Sortie_PadA8_Pin Sortie_PadA9_Pin */
-  GPIO_InitStruct.Pin = LD2_Pin|Sortie_PadA8_Pin|Sortie_PadA9_Pin;
+  /*Configure GPIO pins : LD2_Pin PAD_OUTPUTA8_Pin PAD_OUTPUTA9_Pin */
+  GPIO_InitStruct.Pin = LD2_Pin|PAD_OUTPUTA8_Pin|PAD_OUTPUTA9_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : MUX_IN1_SIG_Pin Sortie_Pad_Pin */
-  GPIO_InitStruct.Pin = MUX_IN1_SIG_Pin|Sortie_Pad_Pin;
+  /*Configure GPIO pins : MUX_IN1_SIG_Pin TOF1_SHUT_Pin PAD_OUTPUT_Pin */
+  GPIO_InitStruct.Pin = MUX_IN1_SIG_Pin|TOF1_SHUT_Pin|PAD_OUTPUT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Entree_Pad_Pin */
-  GPIO_InitStruct.Pin = Entree_Pad_Pin;
+  /*Configure GPIO pin : PAD_INPUT_Pin */
+  GPIO_InitStruct.Pin = PAD_INPUT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(Entree_Pad_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(PAD_INPUT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : Entree_PadB4_Pin Entree_PadB5_Pin */
-  GPIO_InitStruct.Pin = Entree_PadB4_Pin|Entree_PadB5_Pin;
+  /*Configure GPIO pins : PAD_INPUTB4_Pin PAD_INPUTB5_Pin */
+  GPIO_InitStruct.Pin = PAD_INPUTB4_Pin|PAD_INPUTB5_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* Configure GPIO pin : B1_Pin (Bouton utilisateur) */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+	GPIO_InitStruct.Pin = GPIO_PIN_13;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /* Activer l'interruption EXTI */
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 2, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+	/* Activer l'interruption EXTI */
+	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 2, 0);
+	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 /* USER CODE BEGIN 2 */
