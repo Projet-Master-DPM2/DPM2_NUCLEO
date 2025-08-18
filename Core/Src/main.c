@@ -25,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "watchdog_service.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -97,7 +97,11 @@ int main(void)
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  // Vérifier si le reset précédent était dû au watchdog
+  if (Watchdog_WasResetCause()) {
+    printf("\r\n*** RESET WATCHDOG DÉTECTÉ ***\r\n");
+    printf("Système redémarré par le watchdog\r\n");
+  }
   /* USER CODE END 2 */
 
   /* Init scheduler */

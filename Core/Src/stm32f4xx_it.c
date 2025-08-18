@@ -22,6 +22,8 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "FreeRTOS.h"
+#include "task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -84,17 +86,7 @@ void NMI_Handler(void)
 /**
   * @brief This function handles Hard fault interrupt.
   */
-void HardFault_Handler(void)
-{
-  /* USER CODE BEGIN HardFault_IRQn 0 */
-
-  /* USER CODE END HardFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
-    /* USER CODE END W1_HardFault_IRQn 0 */
-  }
-}
+// Déclaration déplacée vers USER CODE section
 
 /**
   * @brief This function handles Memory management fault.
@@ -176,6 +168,46 @@ void TIM1_UP_TIM10_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+// Compteurs d'erreurs pour diagnostic
+static volatile uint32_t stackOverflowCount = 0;
+static volatile uint32_t hardFaultCount = 0;
+static volatile uint32_t lastErrorTimestamp = 0;
+
+#define ERROR_RECOVERY_DELAY_MS 1000
+#define MAX_ERROR_COUNT 5
+
+// Détection d'overflow de pile FreeRTOS avec récupération
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
+    stackOverflowCount++;
+    lastErrorTimestamp = HAL_GetTick();
+    
+    // Log sécurisé minimal (éviter printf en contexte IT)
+    if (stackOverflowCount < MAX_ERROR_COUNT) {
+        // Tentative de récupération gracieuse
+        if (xTask != NULL) {
+            vTaskDelete(xTask); // Supprimer la tâche défaillante
+        }
+        return;
+    }
+    
+    // Après MAX_ERROR_COUNT échecs, reset système
+    NVIC_SystemReset();
+}
+
+// Amélioration HardFault avec diagnostic
+void HardFault_Handler(void) {
+    hardFaultCount++;
+    lastErrorTimestamp = HAL_GetTick();
+    
+    // En cas de hard fault répétés, reset système
+    if (hardFaultCount >= MAX_ERROR_COUNT) {
+        NVIC_SystemReset();
+    }
+    
+    while (1) {
+        // Watchdog va déclencher un reset
+    }
+}
 /**
   * @brief This function handles EXTI line[15:10] interrupts.
   */
