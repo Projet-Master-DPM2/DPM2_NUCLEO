@@ -2,7 +2,7 @@ name: NUCLEO Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, dev, ci/cd ]
     paths:
       - 'DPM2_NUCLEO/**'
       - '.github/workflows/nucleo-tests.yml'
