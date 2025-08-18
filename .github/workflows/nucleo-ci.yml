@@ -475,7 +475,7 @@ jobs:
 
       - name: Send email
         uses: dawidd6/action-send-mail@v3
-        if: github.event_name != 'pull_request' && (secrets.SMTP_HOST && secrets.MAIL_TO)
+        if: github.event_name != 'pull_request' && secrets.SMTP_HOST && secrets.MAIL_TO
         with:
           server_address: ${{ secrets.SMTP_HOST }}
           server_port: ${{ secrets.SMTP_PORT }}
