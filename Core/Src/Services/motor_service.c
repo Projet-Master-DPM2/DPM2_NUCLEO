@@ -1,7 +1,7 @@
 #include "motor_service.h"
 #include "main.h"
 #include "queue.h"
-#include "orchestrator_service.h"
+#include "orchestrator.h"
 
 // Notification directe + structure de job
 typedef struct {

@@ -1,5 +1,6 @@
 #include "lcd_service.h"
 #include "global.h"
+#include "watchdog_service.h"
 #include <string.h>
 
 #define LCD_ADDR         (0x27 << 1) // Adresse I2C du module (0x27 est classique)
@@ -11,16 +12,19 @@
 //extern I2C_HandleTypeDef hi2c1;
 // lcd_display est défini dans global.c
 extern osMessageQueueId_t lcdMessageQueueHandle;
+extern osMutexId_t i2c1Mutex;
 
 static void lcd_send_nibble(uint8_t nibble, uint8_t control) {
     uint8_t data = nibble | control | LCD_BACKLIGHT;
 
-    HAL_I2C_Master_Transmit(&hi2c1, LCD_ADDR, &data, 1, HAL_MAX_DELAY);
+    osMutexAcquire(i2c1Mutex, osWaitForever);
+    HAL_I2C_Master_Transmit(&hi2c1, LCD_ADDR, &data, 1, 50);
     data |= LCD_ENABLE;
-    HAL_I2C_Master_Transmit(&hi2c1, LCD_ADDR, &data, 1, HAL_MAX_DELAY);
+    HAL_I2C_Master_Transmit(&hi2c1, LCD_ADDR, &data, 1, 50);
     osDelay(1);
     data &= ~LCD_ENABLE;
-    HAL_I2C_Master_Transmit(&hi2c1, LCD_ADDR, &data, 1, HAL_MAX_DELAY);
+    HAL_I2C_Master_Transmit(&hi2c1, LCD_ADDR, &data, 1, 50);
+    osMutexRelease(i2c1Mutex);
     osDelay(1);
 }
 
@@ -105,19 +109,20 @@ void StartTaskLCD(void *argument) {
     }
     lcd_send_string((char*)lcd_display);
 
-    MachineState keypad_last_state = machine_interaction;
-    char order_number[10];
-
     // Nouvelle boucle: consomme des messages d'affichage
     LcdMessage msg;
     for(;;) {
-        if (osMessageQueueGet(lcdMessageQueueHandle, &msg, NULL, osWaitForever) == osOK) {
+        // Heartbeat watchdog avec timeout pour éviter blocage
+        Watchdog_TaskHeartbeat(TASK_LCD);
+        
+        if (osMessageQueueGet(lcdMessageQueueHandle, &msg, NULL, 2000) == osOK) {
             lcd_clear();
             lcd_set_cursor(0, 0);
             lcd_send_string(msg.line1);
             lcd_set_cursor(1, 0);
             lcd_send_string(msg.line2);
         }
+        // Timeout permet heartbeat régulier même sans messages
     }
 }
 

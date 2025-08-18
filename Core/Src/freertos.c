@@ -31,9 +31,10 @@
 #include "send_uart.h"
 #include "keypad_service.h"
 #include "motor_service.h"
-#include "orchestrator_service.h"
+#include "orchestrator.h"
 #include "sensor_stock_service.h"
 #include "esp_communication_service.h"
+#include "watchdog_service.h"
 
 /* USER CODE END Includes */
 
@@ -62,10 +63,12 @@ osThreadId_t motorTaskHandle;
 osThreadId_t orchestratorTaskHandle;
 osThreadId_t sensorStockTaskHandle;
 osThreadId_t espCommTaskHandle;
+osThreadId_t watchdogTaskHandle;
 
 osMessageQueueId_t keypadEventQueueHandle;
 osMessageQueueId_t orchestratorEventQueueHandle;
 osMessageQueueId_t lcdMessageQueueHandle;
+osMutexId_t i2c1Mutex;
 
 const osThreadAttr_t blinkLED_attributes = {
   .name = "blinkLED",
@@ -114,6 +117,12 @@ const osThreadAttr_t espCommTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 
+const osThreadAttr_t watchdogTask_attributes = {
+  .name = "watchdogTask",
+  .stack_size = 512 * 4,  // Plus de stack pour les diagnostics
+  .priority = (osPriority_t) osPriorityRealtime,  // Priorité maximale
+};
+
 const osMessageQueueAttr_t keypadEventQueue_attributes = {
   .name = "keypadEventQueue"
 };
@@ -158,7 +167,25 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
+  // Mutex I2C1 pour LCD + capteurs (évite collisions)
+  const osMutexAttr_t i2c1MutexAttr = { .name = "i2c1Mutex" };
+  i2c1Mutex = osMutexNew(&i2c1MutexAttr);
+  
+  // Mutex pour variables globales d'état (sécurité thread-safe)
+  extern osMutexId_t globalStateMutex;
+  extern osMutexId_t keypadChoiceMutex;
+  
+  const osMutexAttr_t globalStateMutexAttr = { .name = "globalStateMutex" };
+  globalStateMutex = osMutexNew(&globalStateMutexAttr);
+  if (globalStateMutex == NULL) {
+      printf("ERREUR: Impossible de créer globalStateMutex\r\n");
+  }
+  
+  const osMutexAttr_t keypadChoiceMutexAttr = { .name = "keypadChoiceMutex" };
+  keypadChoiceMutex = osMutexNew(&keypadChoiceMutexAttr);
+  if (keypadChoiceMutex == NULL) {
+      printf("ERREUR: Impossible de créer keypadChoiceMutex\r\n");
+  }
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
@@ -188,6 +215,16 @@ void MX_FREERTOS_Init(void) {
   orchestratorTaskHandle = osThreadNew(StartTaskOrchestrator, NULL, &orchestratorTask_attributes);
   //sensorStockTaskHandle = osThreadNew(StartTaskSensorStock, NULL, &sensorStockTask_attributes);
   espCommTaskHandle = osThreadNew(StartTaskEspCommunication, NULL, &espCommTask_attributes);
+  
+  // Initialiser et démarrer le service watchdog
+  Watchdog_Init();
+  watchdogTaskHandle = osThreadNew(StartTaskWatchdog, NULL, &watchdogTask_attributes);
+  
+  // Enregistrer les tâches critiques auprès du watchdog
+  Watchdog_RegisterTask(TASK_ORCHESTRATOR, &orchestratorTaskHandle, 2000);
+  Watchdog_RegisterTask(TASK_KEYPAD, &keypadTaskHandle, 3000);
+  Watchdog_RegisterTask(TASK_LCD, &lcdTaskHandle, 5000);
+  Watchdog_RegisterTask(TASK_ESP_COMM, &espCommTaskHandle, 4000);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */

@@ -1,6 +1,7 @@
 #include "sensor_stock_service.h"
-#include "orchestrator_service.h"
+#include "orchestrator.h"
 #include <stdio.h>
+#include "global.h"
 
 // Registres clés du VL6180X (voir AN ST)
 #define VL6180_SYSRANGE_START          0x018
@@ -11,14 +12,20 @@
 
 static HAL_StatusTypeDef vl6180_write_reg_addr(uint16_t devAddr8, uint16_t reg, uint8_t value) {
     uint8_t tx[3] = { (uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF), value };
-    return HAL_I2C_Master_Transmit(&hi2c1, devAddr8, tx, 3, 50);
+    osMutexAcquire(i2c1Mutex, osWaitForever);
+    HAL_StatusTypeDef st = HAL_I2C_Master_Transmit(&hi2c1, devAddr8, tx, 3, 50);
+    osMutexRelease(i2c1Mutex);
+    return st;
 }
 
 static HAL_StatusTypeDef vl6180_read_reg_addr(uint16_t devAddr8, uint16_t reg, uint8_t *value) {
     uint8_t addr[2] = { (uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF) };
+    osMutexAcquire(i2c1Mutex, osWaitForever);
     HAL_StatusTypeDef st = HAL_I2C_Master_Transmit(&hi2c1, devAddr8, addr, 2, 50);
     if (st != HAL_OK) return st;
-    return HAL_I2C_Master_Receive(&hi2c1, devAddr8, value, 1, 50);
+    st = HAL_I2C_Master_Receive(&hi2c1, devAddr8, value, 1, 50);
+    osMutexRelease(i2c1Mutex);
+    return st;
 }
 
 static void sensor_set_shutdown(const TofSensorCfg* s, uint8_t state) {
