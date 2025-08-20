@@ -161,4 +161,8 @@ uint32_t Mock_HAL_GetGpioWriteCount(void) {
     return mock_state.gpio_write_count;
 }
 
+uint32_t Mock_HAL_GetGPIOWriteCallCount(void) {
+    return mock_state.gpio_write_count;
+}
+
 #endif // UNITY_NATIVE_TESTS

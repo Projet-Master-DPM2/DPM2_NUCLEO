@@ -11,4 +11,7 @@ volatile uint8_t client_order = 0;
 osMutexId_t globalStateMutex = NULL;
 osMutexId_t keypadChoiceMutex = NULL;
 
+// Queue de l'orchestrateur (pour motor service)
+osMessageQueueId_t orchestratorEventQueueHandle = NULL;
+
 #endif // UNITY_NATIVE_TESTS

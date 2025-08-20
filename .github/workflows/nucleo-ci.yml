@@ -1,3 +1,6 @@
+permissions:
+  contents: write
+
 name: NUCLEO CI (tests natifs, build, artefacts, release, email)
 
 "on":
@@ -5,9 +8,6 @@ name: NUCLEO CI (tests natifs, build, artefacts, release, email)
     branches: [ "main", "dev" , "CI/CD"]
     tags: [ "v*.*.*" ]
   pull_request:
-
-permissions:
-  contents: write
 
 env:
   ENABLE_S3_UPLOAD: "false"
@@ -26,100 +26,153 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc make cppcheck lcov
+          
+      - name: Setup Unity Test Framework
+        run: |
+          cd test
+          # Vérifier si Unity est présent
+          if [ ! -f "unity/unity.h" ] || [ ! -f "unity/unity.c" ]; then
+            echo "Unity manquant, téléchargement..."
+            mkdir -p unity
+            # Télécharger Unity depuis le repo officiel
+            curl -L https://github.com/ThrowTheSwitch/Unity/raw/master/src/unity.h -o unity/unity.h
+            curl -L https://github.com/ThrowTheSwitch/Unity/raw/master/src/unity.c -o unity/unity.c
+            curl -L https://github.com/ThrowTheSwitch/Unity/raw/master/src/unity_internals.h -o unity/unity_internals.h
+          else
+            echo "Unity déjà présent"
+          fi
 
       - name: Cache test dependencies
         uses: actions/cache@v4
         with:
           path: |
-            DPM2_NUCLEO/test/unity
-            DPM2_NUCLEO/test/build
-          key: nucleo-test-${{ runner.os }}-${{ hashFiles('DPM2_NUCLEO/test/**/*.c', 'DPM2_NUCLEO/test/**/*.h', 'DPM2_NUCLEO/test/Makefile') }}
+            test/unity
+            test/build
+          key: nucleo-test-${{ runner.os }}-${{ hashFiles('test/**/*.c', 'test/**/*.h', 'test/Makefile') }}
 
       # --- TESTS → JUnit XML ---
       - name: Run native tests
         run: |
-          cd DPM2_NUCLEO/test
-          mkdir -p reports
-          
-          # Exécuter les tests et capturer les résultats
-          make test-native > reports/tests_raw.log 2>&1 || true
-          
-          # Convertir les résultats Unity en format JUnit XML
-          python3 - <<'PY'
-          import re, xml.etree.ElementTree as ET
-          from datetime import datetime
-          
-          # Lire le log des tests
-          with open('reports/tests_raw.log', 'r') as f:
-              content = f.read()
-          
-          # Parser les résultats Unity
-          test_pattern = r'\./(.*?):(\d+):(.*?):(PASS|FAIL)'
-          matches = re.findall(test_pattern, content)
-          
-          # Créer XML JUnit
-          root = ET.Element('testsuites')
-          root.set('name', 'NUCLEO Native Tests')
-          root.set('timestamp', datetime.now().isoformat())
-          
-          # Grouper par fichier de test
-          test_files = {}
-          for file_path, line_num, test_name, status in matches:
-              if file_path not in test_files:
-                  test_files[file_path] = []
-              test_files[file_path].append((test_name, status, line_num))
-          
-          total_tests = 0
-          total_failures = 0
-          
-          for file_path, tests in test_files.items():
-              suite = ET.SubElement(root, 'testsuite')
-              suite.set('name', file_path.replace('/', '_'))
-              suite.set('tests', str(len(tests)))
-              
-              failures = sum(1 for _, status, _ in tests if status == 'FAIL')
-              suite.set('failures', str(failures))
-              suite.set('errors', '0')
-              suite.set('time', '1.0')
-              
-              total_tests += len(tests)
-              total_failures += failures
-              
-              for test_name, status, line_num in tests:
-                  testcase = ET.SubElement(suite, 'testcase')
-                  testcase.set('name', test_name)
-                  testcase.set('classname', file_path.replace('/', '.'))
-                  testcase.set('time', '0.1')
-                  
-                  if status == 'FAIL':
-                      failure = ET.SubElement(testcase, 'failure')
-                      failure.set('message', f'Test failed at line {line_num}')
-                      failure.text = f'Test {test_name} failed in {file_path}:{line_num}'
-          
-          root.set('tests', str(total_tests))
-          root.set('failures', str(total_failures))
-          
-          # Sauvegarder le XML
-          tree = ET.ElementTree(root)
-          tree.write('reports/tests.xml', encoding='utf-8', xml_declaration=True)
-          
-          print(f"JUnit XML créé avec {total_tests} tests, {total_failures} échecs")
-          PY
-          
-          # Vérifier que le fichier JUnit a été créé
-          if [[ -f reports/tests.xml ]]; then
-            echo "✅ JUnit XML créé: $(wc -l < reports/tests.xml) lignes"
-            head -5 reports/tests.xml
-          else
-            echo "❌ Erreur: reports/tests.xml n'a pas été créé"
-            ls -la reports/ || echo "Le dossier reports/ n'existe pas"
-            exit 1
-          fi
+            cd test
+            mkdir -p reports
+            
+            # Exécuter les tests et capturer les résultats
+            echo "=== Début des tests NUCLEO ===" > reports/tests_raw.log
+            make test-native >> reports/tests_raw.log 2>&1 || true
+            echo "=== Fin des tests NUCLEO ===" >> reports/tests_raw.log
+            
+            # Afficher le contenu pour debug
+            echo "Contenu du log de tests:"
+            cat reports/tests_raw.log
+            
+            # Convertir les résultats Unity en format JUnit XML
+            python3 - <<'EOF'
+            import re, xml.etree.ElementTree as ET
+            from datetime import datetime
+
+            # Lire le log des tests
+            with open('reports/tests_raw.log', 'r') as f:
+                content = f.read()
+
+            print("=== Debug: Contenu du fichier ===")
+            print(repr(content[:500]))  # Premiers 500 caractères pour debug
+            print("=== Fin debug ===")
+
+            # Parser les résultats Unity - pattern correct observé
+            unity_pattern = r'\./(.*?):(\d+):(.*?):(PASS|FAIL)'
+            unity_matches = re.findall(unity_pattern, content)
+
+            # Parser les résultats de résumé Makefile
+            makefile_success_pattern = r'✅ (.*?): SUCCÈS'
+            makefile_fail_pattern = r'❌ (.*?): ÉCHEC'
+
+            success_tests = re.findall(makefile_success_pattern, content)
+            failed_tests = re.findall(makefile_fail_pattern, content)
+
+            print(f"Unity matches: {len(unity_matches)}")
+            print(f"Makefile success: {len(success_tests)}")
+            print(f"Makefile failed: {len(failed_tests)}")
+
+            # Si on a des résultats Unity détaillés, les utiliser
+            if unity_matches:
+                matches = unity_matches
+                print("Utilisation des résultats Unity détaillés")
+            else:
+                # Sinon, créer des matches basés sur les résultats Makefile
+                matches = []
+                for test_name in success_tests:
+                    matches.append((f"test/{test_name}", "1", test_name, "PASS"))
+                for test_name in failed_tests:
+                    matches.append((f"test/{test_name}", "1", test_name, "FAIL"))
+                print("Utilisation des résultats Makefile")
+
+            print(f"Total matches: {len(matches)}")
+            for match in matches[:5]:
+                print(f"Match: {match}")
+
+            # Créer XML JUnit
+            root = ET.Element('testsuites')
+            root.set('name', 'NUCLEO Native Tests')
+            root.set('timestamp', datetime.now().isoformat())
+
+            # Grouper par fichier de test
+            test_files = {}
+            for file_path, line_num, test_name, status in matches:
+                if file_path not in test_files:
+                    test_files[file_path] = []
+                test_files[file_path].append((test_name, status, line_num))
+
+            total_tests = 0
+            total_failures = 0
+
+            for file_path, tests in test_files.items():
+                suite = ET.SubElement(root, 'testsuite')
+                suite.set('name', file_path.replace('/', '_'))
+                suite.set('tests', str(len(tests)))
+
+                failures = sum(1 for _, status, _ in tests if status == 'FAIL')
+                suite.set('failures', str(failures))
+                suite.set('errors', '0')
+                suite.set('time', '1.0')
+
+                total_tests += len(tests)
+                total_failures += failures
+
+                for test_name, status, line_num in tests:
+                    testcase = ET.SubElement(suite, 'testcase')
+                    testcase.set('name', test_name)
+                    testcase.set('classname', file_path.replace('/', '.'))
+                    testcase.set('time', '0.1')
+
+                    if status == 'FAIL':
+                        failure = ET.SubElement(testcase, 'failure')
+                        failure.set('message', f'Test failed at line {line_num}')
+                        failure.text = f'Test {test_name} failed in {file_path}:{line_num}'
+
+            root.set('tests', str(total_tests))
+            root.set('failures', str(total_failures))
+
+            # Sauvegarder le XML
+            tree = ET.ElementTree(root)
+            tree.write('reports/tests.xml', encoding='utf-8', xml_declaration=True)
+
+            print(f"JUnit XML créé avec {total_tests} tests, {total_failures} échecs")
+            EOF
+            
+            # Vérifier que le fichier JUnit a été créé
+            if [[ -f reports/tests.xml ]]; then
+              echo "✅ JUnit XML créé: $(wc -l < reports/tests.xml) lignes"
+              head -5 reports/tests.xml
+            else
+              echo "❌ Erreur: reports/tests.xml n'a pas été créé"
+              ls -la reports/ || echo "Le dossier reports/ n'existe pas"
+              exit 1
+            fi
 
       # --- Parse JUnit → Markdown ---
       - name: Build Markdown summary from JUnit
         run: |
-          cd DPM2_NUCLEO/test
+          cd test
           python3 - <<'PY'
           import xml.etree.ElementTree as ET, os
 
@@ -188,14 +241,14 @@ jobs:
 
       - name: Publish job summary
         run: |
-          cd DPM2_NUCLEO/test
+          cd test
           cat reports/tests.md >> $GITHUB_STEP_SUMMARY
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         with:
           name: nucleo-test-results
-          path: DPM2_NUCLEO/test/reports/
+          path: test/reports/
 
   cppcheck:
     runs-on: ubuntu-latest
@@ -209,7 +262,6 @@ jobs:
 
       - name: Run cppcheck (HTML if available)
         run: |
-          cd DPM2_NUCLEO
           mkdir -p reports/cppcheck_html
           
           # Générer XML temporaire pour le HTML
@@ -240,7 +292,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nucleo-cppcheck-html
-          path: DPM2_NUCLEO/reports/cppcheck_html/**
+          path: reports/cppcheck_html/**
           if-no-files-found: ignore
 
   build-nucleo:
@@ -259,13 +311,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            DPM2_NUCLEO/Debug
-            DPM2_NUCLEO/build
-          key: nucleo-build-${{ runner.os }}-${{ hashFiles('DPM2_NUCLEO/**/*.c', 'DPM2_NUCLEO/**/*.h', 'DPM2_NUCLEO/Makefile') }}
+            Debug
+            build
+          key: nucleo-build-${{ runner.os }}-${{ hashFiles('**/*.c', '**/*.h', 'Makefile') }}
 
       - name: Build firmware (STM32F411RE)
         run: |
-          cd DPM2_NUCLEO
           
           # Créer un Makefile simple pour la compilation
           cat > Makefile <<'MAKEFILE'
@@ -363,7 +414,6 @@ jobs:
 
       - name: Package firmware (bin + elf + hex + map + README)
         run: |
-          cd DPM2_NUCLEO
           mkdir -p out
           cp -v *.bin out/ 2>/dev/null || echo "Pas de fichier .bin"
           cp -v *.elf out/ 2>/dev/null || echo "Pas de fichier .elf"
@@ -397,7 +447,10 @@ jobs:
           ====================================================
           TXT
           
-          ZIP="${{ env.ARTEFACT_NAME }}-${{ github.ref_name || github.sha }}.zip"
+          # Nettoyer le nom de branche pour éviter les caractères problématiques
+          BRANCH_NAME="${{ github.ref_name || github.sha }}"
+          CLEAN_NAME=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/_/g')
+          ZIP="${{ env.ARTEFACT_NAME }}-${CLEAN_NAME}.zip"
           (cd out && zip -r "../$ZIP" .)
           echo "ZIP_FILE=$ZIP" >> $GITHUB_ENV
 
@@ -405,7 +458,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ZIP_FILE }}
-          path: DPM2_NUCLEO/${{ env.ZIP_FILE }}
+          path: ${{ env.ZIP_FILE }}
 
   release:
     runs-on: ubuntu-latest
@@ -475,7 +528,6 @@ jobs:
 
       - name: Send email
         uses: dawidd6/action-send-mail@v3
-        if: github.event_name != 'pull_request' && secrets.SMTP_HOST && secrets.MAIL_TO
         with:
           server_address: ${{ secrets.SMTP_HOST }}
           server_port: ${{ secrets.SMTP_PORT }}
@@ -484,5 +536,5 @@ jobs:
           from: ${{ secrets.MAIL_FROM }}
           to: ${{ secrets.MAIL_TO }}
           subject: "STM32 NUCLEO DPM2 CI • ${{ needs.build-nucleo.result == 'success' && 'OK' || 'FAIL' }} • ${{ github.ref_name || github.sha }}"
-          secure: auto
+          secure: false
           body: ${{ steps.body.outputs.body }}
