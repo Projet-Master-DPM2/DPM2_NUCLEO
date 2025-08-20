@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     'build/native/test_sensor_stock_service_logic'
+relocations:     []
+...

@@ -90,7 +90,12 @@ PROJECT_SOURCES =
 NATIVE_TESTS = \
 	$(NATIVE_DIR)/test_orchestrator/test_orchestrator_logic.c \
 	$(NATIVE_DIR)/test_watchdog/test_watchdog_logic.c \
-	$(NATIVE_DIR)/test_global_state/test_global_state.c
+	$(NATIVE_DIR)/test_global_state/test_global_state.c \
+	$(NATIVE_DIR)/test_motor_service/test_motor_service_logic.c \
+	$(NATIVE_DIR)/test_keypad_service/test_keypad_service_logic.c \
+	$(NATIVE_DIR)/test_esp_comm_service/test_esp_comm_service_logic.c \
+	$(NATIVE_DIR)/test_lcd_service/test_lcd_service_logic.c \
+	$(NATIVE_DIR)/test_sensor_stock_service/test_sensor_stock_service_logic.c
 
 # Tests embarqués
 EMBEDDED_TESTS = \
@@ -169,7 +174,11 @@ test-native-%: $(BUILD_NATIVE_DIR) $(REPORTS_DIR)
 		$(PROJECT_SOURCES) \
 		$(NATIVE_LDFLAGS) \
 		-o $$test_exe; \
-	$$test_exe
+	if $$test_exe; then \
+		echo "✅ $*_logic: SUCCÈS"; \
+	else \
+		echo "❌ $*_logic: ÉCHEC"; \
+	fi
 
 # ============================================================================
 # TESTS EMBARQUÉS (STM32)

@@ -12,6 +12,7 @@
 // Mock des types FreeRTOS (éviter duplication avec mock_freertos.h)
 #ifndef MOCK_FREERTOS_H
 typedef void* osMutexId_t;
+typedef void* osMessageQueueId_t;
 #endif
 
 // États de la machine
@@ -29,6 +30,29 @@ typedef struct {
     char line2[17];
 } LcdMessage;
 
+// Types d'événements orchestrateur
+typedef enum {
+    ORCH_EVT_KEYPAD,
+    ORCH_EVT_PAYMENT_OK,
+    ORCH_EVT_PAYMENT_CANCEL,
+    ORCH_EVT_ERROR_MOTOR,
+    ORCH_EVT_DELIVERY_DONE,
+    ORCH_EVT_STOCK_LOW,
+    ORCH_EVT_NO_NET
+} OrchestratorEventType;
+
+typedef struct {
+    OrchestratorEventType type;
+    union {
+        char key;     // for ORCH_EVT_KEYPAD
+        uint8_t code; // generic small payload
+        struct {
+            uint8_t sensorId;
+            uint8_t mm;
+        } stock;      // for ORCH_EVT_STOCK_LOW
+    } data;
+} OrchestratorEvent;
+
 // Macros de logging mockées
 #define LOGE(fmt, ...) printf("[ERROR] " fmt "\n", ##__VA_ARGS__)
 #define LOGW(fmt, ...) printf("[WARN] " fmt "\n", ##__VA_ARGS__)
@@ -43,6 +67,9 @@ extern volatile uint8_t client_order;
 // Mutex globaux
 extern osMutexId_t globalStateMutex;
 extern osMutexId_t keypadChoiceMutex;
+
+// Queue de l'orchestrateur
+extern osMessageQueueId_t orchestratorEventQueueHandle;
 
 // Fonctions thread-safe mockées (implémentation simplifiée pour tests)
 static inline MachineState GlobalState_Get(void) {

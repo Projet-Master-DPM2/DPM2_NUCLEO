@@ -49,6 +49,7 @@ extern UART_HandleTypeDef huart2;
 #define GPIO_PIN_9   (1 << 9)
 #define GPIO_PIN_10  (1 << 10)
 #define GPIO_PIN_13  (1 << 13)
+#define GPIO_PIN_15  (1 << 15)
 
 // Fonctions HAL mockées
 HAL_StatusTypeDef HAL_GPIO_ReadPin(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
@@ -73,6 +74,7 @@ void Mock_HAL_SetUARTResponse(HAL_StatusTypeDef status);
 uint32_t Mock_HAL_GetI2CCallCount(void);
 uint32_t Mock_HAL_GetUARTCallCount(void);
 uint32_t Mock_HAL_GetGpioWriteCount(void);
+uint32_t Mock_HAL_GetGPIOWriteCallCount(void);
 
 #endif // UNITY_NATIVE_TESTS
 
