@@ -18,9 +18,10 @@ typedef enum {
     ESP_MSG_ORDER_END,
     ESP_MSG_QR_TOKEN_ERROR,
     ESP_MSG_QR_TOKEN_INVALID,
-    ESP_MSG_QR_TOKEN_BUSY,
-    ESP_MSG_QR_TOKEN_NO_NETWORK,
-    ESP_MSG_ORDER_FAILED
+      ESP_MSG_QR_TOKEN_BUSY,
+  ESP_MSG_QR_TOKEN_NO_NETWORK,
+  ESP_MSG_ORDER_FAILED,
+  ESP_MSG_SUPERVISION_ERROR
 } EspMessageType;
 
 // Détecte le type de message en fonction de la ligne reçue

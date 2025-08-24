@@ -26,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "watchdog_service.h"
+#include "supervision_service.h"
 #include <stdio.h>
 /* USER CODE END Includes */
 
@@ -104,6 +105,9 @@ int main(void)
     printf("\r\n*** RESET WATCHDOG DÉTECTÉ ***\r\n");
     printf("Système redémarré par le watchdog\r\n");
   }
+  
+  // Initialiser le service de supervision
+  SupervisionService_Init();
   /* USER CODE END 2 */
 
   /* Init scheduler */
