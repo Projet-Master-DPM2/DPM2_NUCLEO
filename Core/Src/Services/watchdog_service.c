@@ -1,6 +1,7 @@
 #include "stm32f4xx_hal.h"
 #include "watchdog_service.h"
 #include "global.h"
+#include "supervision_service.h"
 #include <string.h>
 
 // Registres IWDG (accès direct)
@@ -53,6 +54,13 @@ void Watchdog_Init(void) {
         watchdogStats.totalResets++;
         watchdogStats.lastResetTimestamp = HAL_GetTick();
         LOGW("[Watchdog] Reset watchdog détecté! (Total: %lu)\r\n", watchdogStats.totalResets);
+        
+        // Envoyer une notification de supervision
+        SupervisionService_SendErrorNotification(
+            SUPERVISION_ERROR_WATCHDOG_RESET,
+            "Watchdog reset detected - system recovered from hang"
+        );
+        
         Watchdog_HandleReset();
         Watchdog_ClearResetFlag();
     }
@@ -165,6 +173,20 @@ bool Watchdog_CheckSystemHealth(void) {
             
             LOGE("[Watchdog] Tâche %s non réactive (%lums, échecs: %lu)\r\n",
                  task->taskName, timeSinceHeartbeat, task->missedHeartbeats);
+            
+            // Envoyer une notification de supervision pour les tâches critiques
+            // Les tâches critiques sont : Orchestrator, Keypad, LCD, ESP_Comm
+            if (i == TASK_ORCHESTRATOR || i == TASK_KEYPAD || i == TASK_LCD || i == TASK_ESP_COMM) {
+                char message[256];
+                snprintf(message, sizeof(message), 
+                    "Task %s not responding for %lu ms (failures: %lu)", 
+                    task->taskName, timeSinceHeartbeat, task->missedHeartbeats);
+                
+                SupervisionService_SendErrorNotification(
+                    SUPERVISION_ERROR_TASK_HANG,
+                    message
+                );
+            }
         } else {
             task->isAlive = true;
         }
@@ -174,6 +196,12 @@ bool Watchdog_CheckSystemHealth(void) {
     if (osKernelGetState() != osKernelRunning) {
         LOGE("[Watchdog] Scheduler FreeRTOS défaillant\r\n");
         systemHealthy = false;
+        
+        // Envoyer une notification de supervision
+        SupervisionService_SendErrorNotification(
+            SUPERVISION_ERROR_SYSTEM_CRASH,
+            "FreeRTOS scheduler not running - system crash detected"
+        );
     }
     
     if (watchdogMutex) osMutexRelease(watchdogMutex);
