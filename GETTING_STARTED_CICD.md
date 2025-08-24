@@ -236,3 +236,4 @@ Vous avez maintenant :
 - **Validation** : Scripts de test intégrés
 
 **La pipeline est robuste, testée et prête pour la production !** 🚀
+

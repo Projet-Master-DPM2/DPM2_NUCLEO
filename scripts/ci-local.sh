@@ -492,3 +492,4 @@ trap 'print_error "Erreur détectée à la ligne $LINENO. Arrêt du script."; ex
 
 # Exécution
 main "$@"
+

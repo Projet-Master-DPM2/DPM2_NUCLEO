@@ -93,19 +93,23 @@ static HAL_StatusTypeDef sensors_init(TofSensorCfg* sensors, uint8_t count) {
 
 void StartTaskSensorStock(void *argument) {
     printf("\r\nSensorStock Task started\r\n");
-    // Exemple: un capteur à l'adresse par défaut 0x29 (ajoute d'autres entrées pour multi-capteurs)
-    TofSensorCfg sensors[1] = {
-        { .id = 0, .i2cAddr8 = VL6180_DEFAULT_ADDR_8BIT, .shutPort = TOF_SHUT_GPIO_Port, .shutPin = TOF_SHUT_Pin, .thresholdMm = 170 }
+    // Configuration des 5 capteurs ToF avec leurs broches SHUT respectives
+    TofSensorCfg sensors[5] = {
+        { .id = 0, .i2cAddr8 = (0x29 << 1), .shutPort = TOF_SHUT_1_GPIO_Port, .shutPin = TOF_SHUT_1_Pin, .thresholdMm = 170 },
+        { .id = 1, .i2cAddr8 = (0x2A << 1), .shutPort = TOF_SHUT_2_GPIO_Port, .shutPin = TOF_SHUT_2_Pin, .thresholdMm = 170 },
+        { .id = 2, .i2cAddr8 = (0x2B << 1), .shutPort = TOF_SHUT_3_GPIO_Port, .shutPin = TOF_SHUT_3_Pin, .thresholdMm = 170 },
+        { .id = 3, .i2cAddr8 = (0x2C << 1), .shutPort = TOF_SHUT_4_GPIO_Port, .shutPin = TOF_SHUT_4_Pin, .thresholdMm = 170 },
+        { .id = 4, .i2cAddr8 = (0x2D << 1), .shutPort = TOF_SHUT_5_GPIO_Port, .shutPin = TOF_SHUT_5_Pin, .thresholdMm = 170 }
     };
 
-    if (sensors_init(sensors, 1) != HAL_OK) {
+    if (sensors_init(sensors, 5) != HAL_OK) {
         printf("VL6180 init error\r\n");
     } else {
-        printf("VL6180 ready\r\n");
+        printf("VL6180 ready (5 sensors)\r\n");
     }
 
     for (;;) {
-        for (uint8_t i = 0; i < 1; ++i) {
+        for (uint8_t i = 0; i < 5; ++i) {
             uint8_t mm = 0;
             if (vl6180_single_shot(sensors[i].i2cAddr8, &mm) == HAL_OK) {
                 printf("TOF[%d] distance: %u mm\r\n", sensors[i].id, mm);

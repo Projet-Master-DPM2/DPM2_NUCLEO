@@ -54,3 +54,4 @@ rm -rf "$TEST_DIR"
 echo ""
 echo "🎯 Résultat: La correction résout le problème de caractères spéciaux"
 echo "   dans les noms de fichiers ZIP."
+

@@ -21,3 +21,4 @@ extern uint8_t mock_motor_running;
 void Mock_Motor_Reset(void);
 
 #endif // MOCK_MOTOR_SERVICE_H
+

@@ -52,13 +52,14 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, MUX_S0_Pin|MUX_S1_Pin|MUX_S2_Pin|MUX_S3_Pin
-                          |PAD_OUTPUTC7_Pin, GPIO_PIN_RESET);
+                          |PAD_OUTPUT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, LD2_Pin|PAD_OUTPUTA8_Pin|PAD_OUTPUTA9_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, MUX_IN1_SIG_Pin|TOF1_SHUT_Pin|PAD_OUTPUT_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, MUX_IN1_SIG_Pin|TOF2_SHUT_Pin|TOF1_SHUT_Pin|TOF5_SHUT_Pin
+                          |TOF4_SHUT_Pin|TOF3_SHUT_Pin|PAD_OUTPUTB6_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -67,9 +68,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : MUX_S0_Pin MUX_S1_Pin MUX_S2_Pin MUX_S3_Pin
-                           PAD_OUTPUTC7_Pin */
+                           PAD_OUTPUT_Pin */
   GPIO_InitStruct.Pin = MUX_S0_Pin|MUX_S1_Pin|MUX_S2_Pin|MUX_S3_Pin
-                          |PAD_OUTPUTC7_Pin;
+                          |PAD_OUTPUT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -82,8 +83,10 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : MUX_IN1_SIG_Pin TOF1_SHUT_Pin PAD_OUTPUT_Pin */
-  GPIO_InitStruct.Pin = MUX_IN1_SIG_Pin|TOF1_SHUT_Pin|PAD_OUTPUT_Pin;
+  /*Configure GPIO pins : MUX_IN1_SIG_Pin TOF2_SHUT_Pin TOF1_SHUT_Pin TOF5_SHUT_Pin
+                           TOF4_SHUT_Pin TOF3_SHUT_Pin PAD_OUTPUTB6_Pin */
+  GPIO_InitStruct.Pin = MUX_IN1_SIG_Pin|TOF2_SHUT_Pin|TOF1_SHUT_Pin|TOF5_SHUT_Pin
+                          |TOF4_SHUT_Pin|TOF3_SHUT_Pin|PAD_OUTPUTB6_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -101,25 +104,20 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /* Configure GPIO pin : B1_Pin (Bouton utilisateur) */
-	GPIO_InitStruct.Pin = GPIO_PIN_13;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-	/* Activer l'interruption EXTI */
-	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 2, 0);
-	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 /* USER CODE BEGIN 2 */
     	/* Configure GPIO pin : B1_Pin (Bouton utilisateur) */
-    	/*GPIO_InitStruct.Pin = GPIO_PIN_13;
+    	/*
+    	GPIO_InitStruct.Pin = GPIO_PIN_13;
     	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
     	GPIO_InitStruct.Pull = GPIO_NOPULL;
     	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    	*/
 
     	/* Activer l'interruption EXTI */
-    	/*HAL_NVIC_SetPriority(EXTI15_10_IRQn, 2, 0);
+    	/*
+    	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 2, 0);
     	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+    	*/
 /* USER CODE END 2 */

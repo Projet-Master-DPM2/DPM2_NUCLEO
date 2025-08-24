@@ -17,9 +17,22 @@ typedef struct {
     uint8_t thresholdMm;   // seuil de stock bas (distance)
 } TofSensorCfg;
 
-// Broche SHUT du capteur (mise à niveau projet: passer par main.h si tu ajoutes un define)
-#define TOF_SHUT_GPIO_Port     GPIOB
-#define TOF_SHUT_Pin           GPIO_PIN_1
+// Broches SHUT des capteurs ToF (5 capteurs)
+// Chaque capteur a sa propre broche SHUT pour l'activation/désactivation
+#define TOF_SHUT_1_GPIO_Port   GPIOB
+#define TOF_SHUT_1_Pin         GPIO_PIN_2
+
+#define TOF_SHUT_2_GPIO_Port   GPIOB
+#define TOF_SHUT_2_Pin         GPIO_PIN_1
+
+#define TOF_SHUT_3_GPIO_Port   GPIOB
+#define TOF_SHUT_3_Pin         GPIO_PIN_15
+
+#define TOF_SHUT_4_GPIO_Port   GPIOB
+#define TOF_SHUT_4_Pin         GPIO_PIN_14
+
+#define TOF_SHUT_5_GPIO_Port   GPIOB
+#define TOF_SHUT_5_Pin         GPIO_PIN_13
 
 void StartTaskSensorStock(void *argument);
 HAL_StatusTypeDef VL6180_SetI2CAddress(I2C_HandleTypeDef* hi2c, uint16_t currentAddr8, uint8_t new7bit);

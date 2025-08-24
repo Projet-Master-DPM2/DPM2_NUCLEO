@@ -43,7 +43,13 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
+// Compteurs d'erreurs pour diagnostic
+static volatile uint32_t stackOverflowCount = 0;
+static volatile uint32_t hardFaultCount = 0;
+static volatile uint32_t lastErrorTimestamp = 0;
 
+#define ERROR_RECOVERY_DELAY_MS 1000
+#define MAX_ERROR_COUNT 5
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -86,7 +92,23 @@ void NMI_Handler(void)
 /**
   * @brief This function handles Hard fault interrupt.
   */
-// Déclaration déplacée vers USER CODE section
+void HardFault_Handler(void)
+{
+  /* USER CODE BEGIN HardFault_IRQn 0 */
+  hardFaultCount++;
+  lastErrorTimestamp = HAL_GetTick();
+  
+  // En cas de hard fault répétés, reset système
+  if (hardFaultCount >= MAX_ERROR_COUNT) {
+      NVIC_SystemReset();
+  }
+  /* USER CODE END HardFault_IRQn 0 */
+  while (1)
+  {
+    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+    /* USER CODE END W1_HardFault_IRQn 0 */
+  }
+}
 
 /**
   * @brief This function handles Memory management fault.
@@ -168,13 +190,6 @@ void TIM1_UP_TIM10_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-// Compteurs d'erreurs pour diagnostic
-static volatile uint32_t stackOverflowCount = 0;
-static volatile uint32_t hardFaultCount = 0;
-static volatile uint32_t lastErrorTimestamp = 0;
-
-#define ERROR_RECOVERY_DELAY_MS 1000
-#define MAX_ERROR_COUNT 5
 
 // Détection d'overflow de pile FreeRTOS avec récupération
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
@@ -195,19 +210,8 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
 }
 
 // Amélioration HardFault avec diagnostic
-void HardFault_Handler(void) {
-    hardFaultCount++;
-    lastErrorTimestamp = HAL_GetTick();
-    
-    // En cas de hard fault répétés, reset système
-    if (hardFaultCount >= MAX_ERROR_COUNT) {
-        NVIC_SystemReset();
-    }
-    
-    while (1) {
-        // Watchdog va déclencher un reset
-    }
-}
+// Note: HardFault_Handler est déjà défini plus haut dans le fichier
+// Cette fonction est remplacée par la logique dans la section USER CODE
 /**
   * @brief This function handles EXTI line[15:10] interrupts.
   */
