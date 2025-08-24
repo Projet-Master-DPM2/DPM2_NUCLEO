@@ -71,3 +71,4 @@ with open('.github/workflows/nucleo-ci.yml', 'w') as f:
     f.write('\n'.join(fixed_lines))
 
 print("Indentation Python du workflow corrigée")
+

@@ -279,3 +279,4 @@ else
     print_error "❌ Aucun test exécuté"
     exit 1
 fi
+
