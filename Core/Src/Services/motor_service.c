@@ -66,15 +66,15 @@ void MotorService_StartDelivery(uint8_t channel) {
     xTaskNotifyGive(motorTaskHandleLocal);
 }
 
-// Mappe un code commande (11,12,13,21,22,23) vers un canal 0..6
+// Mappe un code commande (11,12,13,21,22,23) vers un canal 1..4 (multiplexeur 4 channels)
 uint8_t MotorService_OrderToChannel(uint8_t orderCode) {
     switch (orderCode) {
-        case 11: return 0;
-        case 12: return 1;
-        case 13: return 2;
-        case 21: return 3;
-        case 22: return 4;
-        case 23: return 6;
+        case 11: return 1;  // Channel 1 du multiplexeur
+        case 12: return 2;  // Channel 2 du multiplexeur
+        case 13: return 3;  // Channel 3 du multiplexeur
+        case 21: return 4;  // Channel 4 du multiplexeur
+        case 22: return 1;  // Retour au channel 1 (rotation)
+        case 23: return 2;  // Retour au channel 2 (rotation)
         default: return 0xFF; // invalide
     }
 }

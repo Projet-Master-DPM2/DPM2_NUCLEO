@@ -1,381 +1,405 @@
-# 🤖 DPM2_NUCLEO - Distributeur de Boissons Intelligent
+# DPM2 NUCLEO - Module de Contrôle
 
-## 📋 Vue d'ensemble
+## 📋 Description
 
-**DPM2_NUCLEO** est la partie embarquée du système de distributeur de boissons intelligent DPM2. Elle gère le contrôle des moteurs, capteurs, interfaces utilisateur et la communication avec l'ESP32 pour la connectivité réseau.
+Module NUCLEO-F411RE du projet **DPM (Distributeur de Produits Modulaire)** - un distributeur automatique intelligent. Le NUCLEO gère le contrôle des moteurs, la détection de stock, l'interface utilisateur et la communication avec l'ESP32.
 
-### 🏗️ Architecture Système
+## 🏗️ Architecture
 
-```
-┌─────────────────┐    UART     ┌──────────────────┐
-│   STM32 NUCLEO  │◄────────────►│      ESP32       │
-│    F411RE       │              │   (DPM2_ESP)     │
-│                 │              │                  │
-│ • Moteurs DC    │              │ • Wi-Fi          │
-│ • Capteurs ToF  │              │ • NFC/QR         │
-│ • LCD + Keypad  │              │ • Backend API    │
-│ • Orchestration │              │ • Paiements      │
-└─────────────────┘              └──────────────────┘
-```
+### Rôle du NUCLEO
+- **Contrôle moteur** via multiplexeur (4 canaux)
+- **Détection de stock** via capteurs ToF (5 capteurs)
+- **Interface utilisateur** (LCD + Keypad)
+- **Communication UART** avec l'ESP32
+- **Surveillance système** via watchdog
+- **Gestion des tâches** avec FreeRTOS
 
-## 🎯 Fonctionnalités Principales
+### Framework & OS
+- **STM32CubeIDE** / **STM32 HAL**
+- **FreeRTOS** pour la gestion des tâches
+- **Architecture service/événementielle** avec queues et mutexes
 
-### ✅ **Contrôle Hardware**
-- **6 Moteurs DC** : Distribution via L298N + multiplexeurs CD74HC4067
-- **Capteurs ToF VL6180X** : Détection de stock en temps réel
-- **LCD 16x2 I2C** : Interface utilisateur
-- **Clavier matriciel 3x4** : Saisie utilisateur
-- **LEDs d'état** : Retour visuel
-
-### ✅ **Gestion Logicielle**
-- **FreeRTOS** : Multitâches temps réel
-- **Machine à États** : Orchestration des flux
-- **Communication UART** : Interface ESP32
-- **Validation Sécurisée** : Codes produits et entrées
-- **Watchdog Système** : Fiabilité et récupération
-
-### ✅ **Architecture Événementielle**
-- **Services Modulaires** : Isolation des responsabilités
-- **Queues FreeRTOS** : Communication inter-tâches
-- **Thread Safety** : Accès sécurisé aux ressources partagées
-- **Gestion d'Erreurs** : Récupération automatique
-
-## 🔧 Configuration Hardware
-
-### **Microcontrôleur**
-- **MCU** : STM32F411RE (ARM Cortex-M4, 100 MHz)
-- **Flash** : 512 KB
-- **RAM** : 128 KB
-- **Développement** : STM32 NUCLEO-F411RE
-
-### **Périphériques**
+## 🔧 Composants Matériels
 
 | Composant | Interface | Pins | Description |
 |-----------|-----------|------|-------------|
-| **LCD 16x2** | I2C1 | PB8(SCL), PB9(SDA) | Affichage utilisateur |
-| **Clavier 3x4** | GPIO | PC0-PC3, PB0-PB3 | Saisie codes produits |
-| **Moteurs DC** | PWM+GPIO | PC0-PC3, PB0 | Distribution boissons |
-| **Capteur ToF** | I2C1 | PB8(SCL), PB9(SDA), PB1(SHUT) | Détection stock |
-| **ESP32 UART** | UART1 | PA9(TX), PA10(RX) | Communication réseau |
-| **Debug UART** | UART2 | PB7(RX), PA15(TX) | Logs de développement |
+| Multiplexeur | GPIO | A0, A1, A2, A3 | Contrôle 4 moteurs |
+| Capteurs ToF | I2C2 | SDA=PB11, SCL=PB10 | 5 capteurs de niveau |
+| Pins SHUT ToF | GPIO | PB2, PB1, PB15, PB14, PB13 | Activation individuelle |
+| LCD | I2C2 | SDA=PB11, SCL=PB10 | Affichage utilisateur |
+| Keypad | GPIO | Matrix 4x4 | Interface utilisateur |
+| ESP32 | UART1 | RX=PA10, TX=PA9 | Communication inter-cartes |
+| Debug | UART2 | RX=PA3, TX=PA2 | Console de débogage |
 
-### **Alimentation**
-- **Principale** : 5V 10A (moteurs + logique)
-- **MCU** : 3.3V via régulateur intégré NUCLEO
-- **Capteurs** : 3.3V (I2C pull-ups intégrés)
+## 📁 Structure du Projet
 
-## 🚀 Démarrage Rapide
-
-### **Prérequis**
-```bash
-# Outils de développement
-sudo apt-get install gcc-arm-none-eabi make openocd
-
-# Tests unitaires (optionnel)
-sudo apt-get install gcc python3 cppcheck lcov
-```
-
-### **Compilation**
-```bash
-# Cloner le projet
-git clone <repository-url>
-cd DPM2_NUCLEO
-
-# Compiler le firmware
-make all
-
-# Flasher sur la carte
-st-flash write DPM2_NUCLEO.bin 0x8000000
-```
-
-### **Tests Unitaires**
-```bash
-cd test
-
-# Tests natifs (PC)
-make test-native
-
-# Tests individuels
-make test-native-orchestrator
-make test-native-watchdog
-make test-native-global_state
-
-# Génération de rapports
-make test-reports
-```
-
-## 🏗️ Architecture Logicielle
-
-### **Organisation FreeRTOS**
-
-```
-main()
-├── Hardware Init (HAL, GPIO, I2C, UART)
-├── FreeRTOS Kernel Start
-└── Tasks Creation
-    ├── orchestratorTask    (Priorité: Normal)
-    ├── keypadTask         (Priorité: Normal)  
-    ├── lcdTask           (Priorité: Normal)
-    ├── motorTask         (Priorité: Normal)
-    ├── sensorStockTask   (Priorité: Normal)
-    ├── espCommTask       (Priorité: Normal)
-    └── watchdogTask      (Priorité: Realtime)
-```
-
-### **Services Modulaires**
-
-| Service | Responsabilité | Fichiers |
-|---------|----------------|----------|
-| **Orchestrator** | Machine à états principale | `orchestrator.{c,h}` |
-| **Keypad** | Lecture clavier + anti-rebond | `keypad_service.{c,h}` |
-| **LCD** | Affichage messages utilisateur | `lcd_service.{c,h}` |
-| **Motor** | Contrôle moteurs + distribution | `motor_service.{c,h}` |
-| **Sensor Stock** | Mesure ToF + détection stock | `sensor_stock_service.{c,h}` |
-| **ESP Comm** | Communication UART avec ESP32 | `esp_communication_service.{c,h}` |
-| **Watchdog** | Surveillance système + IWDG | `watchdog_service.{c,h}` |
-
-### **Machine à États**
-
-```mermaid
-stateDiagram-v2
-    [*] --> IDLE
-    IDLE --> ORDERING : Saisie utilisateur
-    ORDERING --> PAYING : Code produit valide
-    PAYING --> DELIVERING : Paiement confirmé (ESP32)
-    PAYING --> IDLE : Annulation ('*')
-    DELIVERING --> IDLE : Distribution terminée
-    DELIVERING --> IDLE : Erreur moteur
-```
-
-### **Communication UART (ESP32)**
-
-**Format** : Protocole texte simple
-```
-NUCLEO → ESP32:
-- "STATE:PAYING"     # Demande validation paiement
-- "NFC_SCAN:START"   # Déclencher scan NFC
-- "STATUS:READY"     # État système
-
-ESP32 → NUCLEO:
-- "ACK:STATE:PAYING"         # Paiement autorisé
-- "NAK:STATE:PAYING:NO_NET"  # Pas de réseau
-- "NAK:STATE:PAYING:DENIED"  # Paiement refusé
-- "NFC_UID:1A2B3C4D"        # UID carte NFC
-```
-
-## 🧪 Tests et Qualité
-
-### **Framework de Tests**
-- **Unity** : Framework de tests C embarqué
-- **Mocks** : HAL, FreeRTOS, services externes
-- **Coverage** : Rapports de couverture avec gcov
-- **CI/CD** : Pipeline GitHub Actions complète
-
-### **Tests Implémentés**
-- ✅ **Orchestrator Logic** : Machine à états, validation codes
-- ✅ **Watchdog Service** : IWDG, surveillance tâches  
-- ✅ **Global State** : Thread safety, accès concurrents
-- ✅ **Service Integration** : Communication inter-services
-
-### **Métriques Qualité**
-```bash
-# Exécuter tous les tests
-./scripts/ci-local.sh --all
-
-# Analyse statique
-cppcheck --enable=all Core/Src/
-
-# Coverage report
-make coverage
-```
-
-## 🔒 Sécurité et Fiabilité
-
-### **Mesures de Sécurité OWASP**
-- ✅ **Validation d'Entrées** : Filtrage caractères, longueurs
-- ✅ **Thread Safety** : Mutex pour ressources partagées
-- ✅ **Stack Protection** : Détection débordements
-- ✅ **Watchdog** : Récupération automatique des pannes
-- ✅ **Error Handling** : Gestion robuste des erreurs
-
-### **Fiabilité Système**
-- **Independent Watchdog (IWDG)** : Reset automatique en cas de blocage
-- **Task Monitoring** : Surveillance heartbeat des tâches critiques
-- **Brown-out Detection** : Protection contre les chutes de tension
-- **Error Recovery** : Redémarrage gracieux en cas d'erreur
-
-## 🛠️ Développement
-
-### **Structure du Projet**
 ```
 DPM2_NUCLEO/
 ├── Core/
-│   ├── Inc/                 # Headers principaux
-│   │   ├── Services/        # Headers services
-│   │   └── orchestrator.h   # Orchestrateur principal
-│   └── Src/                 # Sources principales
-│       ├── Services/        # Implémentations services
-│       ├── orchestrator.c   # Orchestrateur principal
-│       └── main.c          # Point d'entrée
-├── Drivers/                 # Drivers STM32 HAL
-├── Middlewares/            # FreeRTOS + CMSIS-RTOS2
-├── test/                   # Framework de tests
-│   ├── native/            # Tests natifs (PC)
-│   ├── mocks/            # Mocks HAL/FreeRTOS
-│   ├── unity/            # Framework Unity
-│   └── scripts/          # Scripts d'automation
-├── scripts/               # Scripts CI/CD
-├── .github/workflows/     # Pipeline GitHub Actions
-└── README.md             # Cette documentation
+│   ├── Inc/
+│   │   ├── main.h
+│   │   ├── config.h
+│   │   ├── global.h
+│   │   └── Services/
+│   │       ├── motor_service.h
+│   │       ├── sensor_stock_service.h
+│   │       ├── lcd_service.h
+│   │       ├── keypad_service.h
+│   │       ├── esp_communication_service.h
+│   │       ├── orchestrator.h
+│   │       ├── watchdog_service.h
+│   │       └── supervision_service.h
+│   └── Src/
+│       ├── main.c
+│       ├── config.c
+│       ├── global.c
+│       └── Services/
+│           ├── motor_service.c
+│           ├── sensor_stock_service.c
+│           ├── lcd_service.c
+│           ├── keypad_service.c
+│           ├── esp_communication_service.c
+│           ├── orchestrator.c
+│           ├── watchdog_service.c
+│           └── supervision_service.c
+├── test/
+│   ├── unity/
+│   ├── mocks/
+│   └── test_*.c
+├── .github/workflows/
+│   └── nucleo-ci.yml
+└── README.md
 ```
 
-### **Workflow de Développement**
-1. **Feature Branch** : Créer une branche pour les nouvelles fonctionnalités
-2. **TDD** : Écrire les tests avant le code
-3. **Local Testing** : `./scripts/ci-local.sh --all`
-4. **Pull Request** : Validation automatique via CI/CD
-5. **Code Review** : Revue par les pairs
-6. **Merge** : Intégration en branche principale
+## 🚀 Démarrage Rapide
 
-### **Debugging**
+### Prérequis
+- **STM32CubeIDE** ou **STM32CubeMX**
+- **NUCLEO-F411RE**
+- **Multiplexeur 4 canaux**
+- **5 capteurs ToF VL6180X**
+- **LCD I2C**
+- **Keypad 4x4**
+
+### Installation
+
 ```bash
-# GDB avec OpenOCD
-openocd -f interface/stlink.cfg -f target/stm32f4x.cfg &
-arm-none-eabi-gdb DPM2_NUCLEO.elf
-(gdb) target extended-remote :3333
-(gdb) monitor reset halt
-(gdb) load
-(gdb) continue
+# Cloner le projet
+git clone <https://github.com/Projet-Master-DPM2/DPM2_NUCLEO.git>
+cd DPM2_NUCLEO
 
-# Logs UART2 (debug)
-minicom -D /dev/ttyACM1 -b 115200
-
-# Analyse mémoire
-arm-none-eabi-nm DPM2_NUCLEO.elf | sort
-arm-none-eabi-objdump -h DPM2_NUCLEO.elf
+# Ouvrir dans STM32CubeIDE
+# ou compiler avec Make
+make -j4
 ```
 
-## 🚀 CI/CD Pipeline
+### Premier Démarrage
 
-### **GitHub Actions Workflow**
-- ✅ **Tests Natifs** : Exécution sur Ubuntu
-- ✅ **Analyse Statique** : cppcheck avec rapports HTML
-- ✅ **Build ARM** : Compilation firmware STM32
-- ✅ **Releases Automatiques** : Sur tags `v*.*.*`
-- ✅ **Notifications Email** : Résultats détaillés
+1. **Initialisation** : Le NUCLEO démarre en mode IDLE
+2. **Test capteurs** : Vérification des 5 capteurs ToF
+3. **Test moteurs** : Test des 4 canaux multiplexeur
+4. **Interface** : Affichage LCD et test keypad
+5. **Communication** : Attente de connexion ESP32
 
-### **Artefacts Générés**
-- **Firmware Package** : .bin, .hex, .elf, .map + documentation
-- **Test Reports** : JUnit XML + Markdown summaries
-- **Static Analysis** : HTML reports avec métriques
-- **GitHub Releases** : Packages prêts à flasher
+## 🎮 États du Système
 
-### **Utilisation Locale**
-```bash
-# Pipeline complète
-./scripts/ci-local.sh --all
+| État | Description | Actions |
+|------|-------------|---------|
+| `IDLE` | Repos, attente | Affichage menu principal |
+| `PAYING` | Mode paiement | Demande scan NFC à ESP32 |
+| `ORDERING` | Sélection produit | Interface keypad active |
+| `DELIVERING` | Distribution | Contrôle moteurs actif |
+| `ERROR` | Erreur système | Affichage erreur, récupération |
 
-# Tests seulement
-./scripts/ci-local.sh --tests --verbose
+## 🔄 Communication UART avec ESP32
 
-# Validation workflow
-./scripts/validate-workflow.sh
+### Messages Reçus (ESP32 → NUCLEO)
+
+#### **Commandes de Livraison**
+```
+ORDER_START:
+VEND <product_id> <slot_number> <quantity>
+VEND <product_id> <slot_number> <quantity>
+...
+ORDER_END
 ```
 
-## 📊 Monitoring et Diagnostics
+#### **Messages de Statut**
+```
+QR_TOKEN_VALID
+QR_TOKEN_INVALID
+QR_TOKEN_ERROR
+QR_TOKEN_BUSY
+QR_TOKEN_NO_NETWORK
+```
 
-### **Métriques Système**
-- **Task CPU Usage** : Monitoring via FreeRTOS stats
-- **Heap Usage** : Surveillance mémoire dynamique
-- **Stack High Water** : Détection débordements potentiels
-- **Watchdog Statistics** : Compteurs de timeouts et resets
+### Messages Envoyés (NUCLEO → ESP32)
 
-### **Logs de Debug**
+#### **Réponses de Livraison**
+```
+ORDER_ACK
+ORDER_NAK
+VEND_COMPLETED <product_id> <slot_number>
+VEND_FAILED <product_id> <slot_number> <error_code>
+DELIVERY_COMPLETED
+DELIVERY_FAILED <error_message>
+```
+
+#### **Demandes de Service**
+```
+STATE:PAYING
+STATE:IDLE
+STATE:ORDERING
+STATE:DELIVERING
+```
+
+#### **Notifications de Supervision**
+```
+SUPERVISION_ERROR:{"error_id":"err_123","machine_id":"nucleo_f411re","error_type":"WATCHDOG_RESET","message":"Watchdog reset detected"}
+```
+
+## 🔧 Configuration Matérielle
+
+### Multiplexeur (4 Canaux)
 ```c
-// Logs sécurisés avec masquage données sensibles
-LOGI("System", "Boot completed, free heap: %lu bytes", xPortGetFreeHeapSize());
-LOGW("Motor", "Channel %d timeout, retrying...", channel);
-LOGE("UART", "Invalid command received: %.10s...", buffer);
+// Configuration des slots 1-4
+#define SLOT_1_CHANNEL 0
+#define SLOT_2_CHANNEL 1
+#define SLOT_3_CHANNEL 2
+#define SLOT_4_CHANNEL 3
+
+// Validation des slots
+#define MIN_SLOT_NUMBER 1
+#define MAX_SLOT_NUMBER 4
 ```
 
-### **Diagnostic Hardware**
-- **I2C Bus Scan** : Détection périphériques connectés
-- **GPIO State** : État des pins en temps réel
-- **Clock Configuration** : Vérification horloges système
-- **Voltage Monitoring** : Surveillance alimentation
+### Capteurs ToF (5 Capteurs)
+```c
+// Pins SHUT individuels
+#define TOF_1_SHUT_PIN GPIO_PIN_2  // PB2
+#define TOF_2_SHUT_PIN GPIO_PIN_1  // PB1
+#define TOF_3_SHUT_PIN GPIO_PIN_15 // PB15
+#define TOF_4_SHUT_PIN GPIO_PIN_14 // PB14
+#define TOF_5_SHUT_PIN GPIO_PIN_13 // PB13
+
+// Adresses I2C uniques
+#define TOF_1_ADDRESS 0x29
+#define TOF_2_ADDRESS 0x30
+#define TOF_3_ADDRESS 0x31
+#define TOF_4_ADDRESS 0x32
+#define TOF_5_ADDRESS 0x33
+```
+
+### Interface Utilisateur
+```c
+// LCD I2C
+#define LCD_I2C_ADDRESS 0x27
+#define LCD_COLUMNS 16
+#define LCD_ROWS 2
+
+// Keypad Matrix 4x4
+#define KEYPAD_ROWS 4
+#define KEYPAD_COLS 4
+```
+
+## 🔒 Sécurité et Surveillance
+
+### Watchdog
+- **IWDG** : Watchdog indépendant pour récupération automatique
+- **Détection de blocage** : Surveillance des tâches critiques
+- **Récupération** : Reset automatique en cas de problème
+- **Logs** : Enregistrement des événements watchdog
+
+### Supervision
+- **Service de supervision** : Détection et notification d'erreurs
+- **Types d'erreurs** : Watchdog, tâches bloquées, défaillances matérielles
+- **Notifications** : Envoi d'erreurs vers ESP32 via UART
+- **Rate limiting** : Protection contre le spam (30 secondes)
+
+### Tâches Critiques Surveillées
+- **Orchestrator** : Tâche principale de coordination
+- **Keypad** : Gestion des entrées utilisateur
+- **LCD** : Affichage des informations
+- **ESP Communication** : Communication avec ESP32
+
+## 🧪 Tests
+
+### Tests Unitaires
+
+```bash
+# Tests natifs (Linux/Mac)
+cd test
+make test-native
+
+# Tests spécifiques
+make test-native-orchestrator
+make test-native-motor
+make test-native-sensor
+make test-native-lcd
+```
+
+### Tests Disponibles
+- **Orchestrator Logic** : Gestion des états et événements
+- **Motor Service** : Contrôle des moteurs et multiplexeur
+- **Sensor Stock** : Lecture des capteurs ToF
+- **LCD Service** : Affichage et gestion I2C
+- **Keypad Service** : Lecture de la matrice
+- **ESP Communication** : Protocole UART
+- **Global State** : Gestion de l'état global
+
+### Framework de Test
+- **Unity** : Framework de test unitaire
+- **Mocks** : Simulation des dépendances HAL
+- **Tests natifs** : Exécution sur PC pour développement rapide
+- **Tests embarqués** : Exécution sur NUCLEO pour validation
+
+## 🚀 CI/CD
+
+### Pipeline GitHub Actions
+- ✅ **Tests unitaires natifs** avec rapport JUnit
+- ✅ **Build firmware** avec validation
+- ✅ **Artefacts** : Génération de fichiers .bin, .elf, .hex
+- ✅ **Release automatique** sur tags
+- ✅ **Notifications** de statut
+
+### Commandes Locales
+```bash
+# Tests complets
+make test-all
+
+# Build firmware
+make -j4
+
+# Analyse statique
+make cppcheck
+
+# Validation locale
+./scripts/ci-local.sh
+```
+
+## 📊 Monitoring
+
+### Logs Runtime
+```
+[NUCLEO] System startup
+[WATCHDOG] Initialized (timeout: 5000ms)
+[MOTOR] Multiplexer initialized (4 channels)
+[SENSOR] ToF sensors initialized (5 sensors)
+[LCD] Display ready (16x2)
+[KEYPAD] Matrix initialized (4x4)
+[ESP_COMM] UART ready (115200 bps)
+[ORCHESTRATOR] Task started
+```
+
+### Métriques Système
+- **Heap libre** : Surveillance continue
+- **Stack usage** : Optimisé par tâche
+- **Queue depths** : Monitoring des files d'attente
+- **Watchdog resets** : Compteur de récupérations
+
+## 🔧 Configuration
+
+### Pins (config.h)
+```c
+// Multiplexeur
+#define MUX_A0_PIN GPIO_PIN_0  // PA0
+#define MUX_A1_PIN GPIO_PIN_1  // PA1
+#define MUX_A2_PIN GPIO_PIN_2  // PA2
+#define MUX_A3_PIN GPIO_PIN_3  // PA3
+
+// Capteurs ToF SHUT
+#define TOF_1_SHUT_PIN GPIO_PIN_2  // PB2
+#define TOF_2_SHUT_PIN GPIO_PIN_1  // PB1
+#define TOF_3_SHUT_PIN GPIO_PIN_15 // PB15
+#define TOF_4_SHUT_PIN GPIO_PIN_14 // PB14
+#define TOF_5_SHUT_PIN GPIO_PIN_13 // PB13
+
+// UART
+#define UART1_RX_PIN GPIO_PIN_10 // PA10 (ESP32)
+#define UART1_TX_PIN GPIO_PIN_9  // PA9
+#define UART2_RX_PIN GPIO_PIN_3  // PA3 (Debug)
+#define UART2_TX_PIN GPIO_PIN_2  // PA2
+```
+
+### Timeouts & Tailles
+```c
+#define WATCHDOG_TIMEOUT_MS    5000
+#define MOTOR_RUN_TIME_MS      2000
+#define SENSOR_READ_INTERVAL_MS 1000
+#define KEYPAD_DEBOUNCE_MS     50
+#define UART_TIMEOUT_MS        1000
+```
 
 ## 🤝 Intégration ESP32
 
-### **Communication Bidirectionnelle**
-```c
-// NUCLEO → ESP32
-EspComm_SendLine("STATE:PAYING");
-
-// ESP32 → NUCLEO (callback)
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart == &huart1) {  // ESP32 UART
-        UartParser_ProcessLine(rx_buffer);
-    }
-}
+### Messages Attendus
+```
+ORDER_START:
+VEND prod_123 1 2
+VEND prod_456 3 1
+ORDER_END
 ```
 
-### **Synchronisation États**
-- **Paiement** : NUCLEO demande, ESP32 valide
-- **Stock** : NUCLEO surveille, ESP32 notifie backend
-- **Erreurs** : Remontée bidirectionnelle
-- **Heartbeat** : Surveillance connexion ESP32
+### Réponses NUCLEO
+```
+ORDER_ACK
+VEND_COMPLETED prod_123 1
+VEND_COMPLETED prod_456 3
+DELIVERY_COMPLETED
+```
 
-## 📚 Ressources et Références
+### Gestion d'Erreurs
+```
+ORDER_NAK
+VEND_FAILED prod_123 1 MOTOR_ERROR
+DELIVERY_FAILED Sensor malfunction
+```
 
-### **Documentation Technique**
-- [STM32F411RE Reference Manual](https://www.st.com/resource/en/reference_manual/dm00119316-stm32f411xce-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)
-- [FreeRTOS Documentation](https://www.freertos.org/Documentation/RTOS_book.html)
-- [Unity Testing Framework](http://www.throwtheswitch.org/unity)
-- [OWASP Embedded Security](https://owasp.org/www-project-embedded-application-security/)
+## 📝 Changelog
 
-### **Outils de Développement**
-- [STM32CubeIDE](https://www.st.com/en/development-tools/stm32cubeide.html)
-- [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html)
-- [OpenOCD](http://openocd.org/)
-- [ARM GNU Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm)
+Voir le [CHANGELOG.md](CHANGELOG.md) pour l'historique détaillé des versions du module NUCLEO.
 
-## 🎯 Roadmap
+## 🐛 Dépannage
 
-### **Version Actuelle (v1.0)**
-- ✅ Architecture de base FreeRTOS
-- ✅ Services modulaires complets
-- ✅ Communication ESP32 fonctionnelle
-- ✅ Tests unitaires comprehensive
-- ✅ Pipeline CI/CD opérationnelle
-- ✅ Sécurité OWASP intégrée
+### Problèmes Courants
 
-### **Prochaines Versions**
-- 🔄 **v1.1** : Optimisations performance et mémoire
-- 📋 **v1.2** : Interface utilisateur avancée (menus)
-- 🔐 **v1.3** : Chiffrement communication UART
-- 📊 **v1.4** : Télémétrie et monitoring avancé
-- 🎯 **v2.0** : Support multi-distributeurs
+**Moteurs ne fonctionnent pas :**
+- Vérifier câblage multiplexeur
+- Contrôler alimentation moteurs
+- Tester avec commande directe
+
+**Capteurs ToF ne répondent pas :**
+- Vérifier pins SHUT individuels
+- Contrôler adresses I2C uniques
+- Tester communication I2C
+
+**UART silencieux :**
+- Vérifier connexions RX/TX croisées
+- Contrôler baudrate (115200)
+- Tester avec ESP32 connecté
+
+**Watchdog reset fréquent :**
+- Vérifier tâches critiques
+- Contrôler stack sizes
+- Analyser logs de supervision
+
+### Debug Avancé
+
+```c
+// Dans config.h, activer debug
+#define DEBUG_MODE 1
+#define WATCHDOG_DEBUG 1
+
+// Monitoring heap
+#define HEAP_MONITOR_ENABLED 1
+```
+
+## 📄 Licence
+
+Ce projet fait partie du cursus académique M2 - Sophia Ynov Campus
+Réalisé par l'équipe DPM - Distributeur Projet Master
 
 ---
 
-## 📞 Support et Contribution
-
-### **Issues et Bugs**
-- Utiliser GitHub Issues avec templates appropriés
-- Fournir logs complets et contexte de reproduction
-- Tester avec la dernière version stable
-
-### **Contributions**
-- Fork → Feature Branch → Pull Request
-- Respecter le style de code existant
-- Ajouter tests pour les nouvelles fonctionnalités
-- Mettre à jour la documentation
-
-### **Contact**
-- **Équipe Développement** : [Votre contact]
-- **Documentation** : Ce README + `CI_CD.md` + `TESTING.md`
-- **Support Technique** : GitHub Issues
-
----
-
-**🤖 DPM2_NUCLEO - Firmware STM32 Professionnel pour Distributeur Intelligent** 🚀✨
+**Équipe DPM2** - Distributeur Automatique Intelligent  
+*NUCLEO-F411RE Control Module - v2.0*

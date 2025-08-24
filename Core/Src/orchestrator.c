@@ -11,6 +11,12 @@ extern volatile MachineState machine_interaction;
 extern volatile char keypad_choice[3];
 extern volatile uint8_t client_order;
 
+// Variables pour la gestion des commandes de livraison
+static bool deliveryOrderInProgress = false;
+static char currentDeliveryOrderId[32] = {0};
+static uint8_t pendingDeliveryItems = 0;
+static uint8_t completedDeliveryItems = 0;
+
 // Helper pour reset le choix
 static void reset_choice(void) {
     keypad_choice[0] = '\0';
@@ -59,6 +65,89 @@ static void orchestrator_on_delivery_done(void) {
     client_order = 0;
     machine_interaction = IDLE;
     orchestrator_show(IDLE);
+}
+
+// Fonction pour gérer le début d'une commande de livraison
+static void orchestrator_on_order_start(const char* order_id) {
+    if (deliveryOrderInProgress) {
+        printf("[ORCH] Order already in progress, ignoring new order\r\n");
+        return;
+    }
+    
+    deliveryOrderInProgress = true;
+    pendingDeliveryItems = 0;
+    completedDeliveryItems = 0;
+    strncpy(currentDeliveryOrderId, order_id, sizeof(currentDeliveryOrderId) - 1);
+    currentDeliveryOrderId[sizeof(currentDeliveryOrderId) - 1] = '\0';
+    
+    machine_interaction = DELIVERING;
+    orchestrator_send_lcd("Commande QR recue", currentDeliveryOrderId);
+    printf("[ORCH] Order started: %s\r\n", currentDeliveryOrderId);
+}
+
+// Fonction pour gérer un item de livraison
+static void orchestrator_on_vend_item(uint8_t slot_number, uint8_t quantity, const char* product_id) {
+    if (!deliveryOrderInProgress) {
+        printf("[ORCH] VEND item received without active order\r\n");
+        return;
+    }
+    
+    pendingDeliveryItems++;
+    printf("[ORCH] VEND item: slot=%d, qty=%d, product=%s\r\n", slot_number, quantity, product_id);
+    
+    // Démarrer la livraison pour cet item
+    uint8_t channel = slot_number; // Le slot_number correspond directement au channel du multiplexeur
+    if (channel >= 1 && channel <= 4) {
+        // Livrer la quantité demandée
+        for (uint8_t i = 0; i < quantity; i++) {
+            MotorService_StartDelivery(channel);
+            // Attendre un peu entre chaque livraison
+            osDelay(1000);
+        }
+        
+        // Confirmer la livraison de cet item
+        char response[64];
+        snprintf(response, sizeof(response), "VEND_COMPLETED:%d", slot_number);
+        EspComm_SendLine(response);
+        
+        completedDeliveryItems++;
+        printf("[ORCH] Item delivered: %d/%d\r\n", completedDeliveryItems, pendingDeliveryItems);
+    } else {
+        printf("[ORCH] Invalid channel: %d\r\n", channel);
+        char response[64];
+        snprintf(response, sizeof(response), "VEND_FAILED:%d:INVALID_CHANNEL", slot_number);
+        EspComm_SendLine(response);
+    }
+}
+
+// Fonction pour finaliser une commande de livraison
+static void orchestrator_on_order_complete(void) {
+    if (!deliveryOrderInProgress) {
+        printf("[ORCH] Order complete received without active order\r\n");
+        return;
+    }
+    
+    printf("[ORCH] Order completed: %s (%d items delivered)\r\n", 
+           currentDeliveryOrderId, completedDeliveryItems);
+    
+    // Confirmer la livraison complète à l'ESP
+    EspComm_SendLine("DELIVERY_COMPLETED");
+    
+    // Réinitialiser l'état
+    deliveryOrderInProgress = false;
+    machine_interaction = IDLE;
+    orchestrator_show(IDLE);
+}
+
+// Fonction pour gérer l'échec d'une commande
+static void orchestrator_on_order_failed(void) {
+    if (deliveryOrderInProgress) {
+        printf("[ORCH] Order failed: %s\r\n", currentDeliveryOrderId);
+        EspComm_SendLine("DELIVERY_FAILED:ORDER_CANCELLED");
+        deliveryOrderInProgress = false;
+        machine_interaction = IDLE;
+        orchestrator_show(IDLE);
+    }
 }
 
 static void orchestrator_on_key_idle_ordering(char key) {
@@ -170,6 +259,20 @@ void StartTaskOrchestrator(void *argument) {
                 break;
             case ORCH_EVT_STOCK_LOW:
                 printf("Stock LOW: sensor=%d, %dmm\r\n", oevt.data.stock.sensorId, oevt.data.stock.mm);
+                break;
+            case ORCH_EVT_ORDER_START:
+                orchestrator_on_order_start(oevt.data.order.order_id);
+                break;
+            case ORCH_EVT_VEND_ITEM:
+                orchestrator_on_vend_item(oevt.data.vend.slot_number, 
+                                        oevt.data.vend.quantity, 
+                                        oevt.data.vend.product_id);
+                break;
+            case ORCH_EVT_ORDER_COMPLETE:
+                orchestrator_on_order_complete();
+                break;
+            case ORCH_EVT_ORDER_FAILED:
+                orchestrator_on_order_failed();
                 break;
             case ORCH_EVT_ERROR_MOTOR:
             default:

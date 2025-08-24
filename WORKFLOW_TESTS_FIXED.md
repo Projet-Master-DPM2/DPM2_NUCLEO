@@ -117,3 +117,4 @@ La pipeline CI/CD NUCLEO va maintenant :
 - Fournir des **artefacts** pour debugging
 
 **Le workflow est prêt pour la production !** 🧪✅🚀
+
